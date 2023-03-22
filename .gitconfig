@@ -7,12 +7,15 @@ lg 			= log --all --decorate --oneline --graph
 lg0 		= log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)' --all
 lg1 		= log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(auto)%d%C(reset)%n''          %C(white)%s%C(reset) %C(dim white)- %an%C(reset)'
 
-cmm			= !git add . && git commit -m $1
-cmma		= !git add . && git commit --amend -m $1
+cmm			= !git add . && git commit -m 
+cmma		= !git add . && git commit --amend -m 
 
-sqshmsg		= !git reset --soft HEAD~$1 && git commit -m $2
-sqsh	 	= !git reset --soft HEAD~$1 && git commit --edit -m"$(git log --format=%B --reverse HEAD..HEAD@{1})"
+rsft		= !git reset --soft
+rhrd		= !git reset --hard
 
-pshall		= !git push $1 --all
-pshalltags	= !git push $1 --tags
-pshmirror	= !git push $1 --mirror
+sqshmsg		= !git reset --soft HEAD~$1 && git commit -m 
+sqsh	 	= !git reset --soft HEAD~$1 && git commit --edit -m"$(git log --format=%B --reverse HEAD..HEAD@{1})" :
+
+pshallbr	= !git push --all
+pshalltg	= !git push --tags 
+pshmrr		= !git push --mirror 
