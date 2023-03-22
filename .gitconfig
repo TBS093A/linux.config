@@ -14,7 +14,7 @@ rsft		= !git reset --soft
 rhrd		= !git reset --hard
 
 sqshmsg		= !git reset --soft HEAD~$1 && git commit -m 
-sqsh	 	= !git reset --soft HEAD~$1 && git commit --edit -m"$(git log --format=%B --reverse HEAD..HEAD@{1})" :
+sqsh	 	= !git reset --soft HEAD~$1 && git commit --edit -m"$(git log --format=%B --reverse HEAD..HEAD@{1})"
 
 pll			= !git pull
 pllallbr	= !git pull --all
