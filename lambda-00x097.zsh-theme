@@ -2,6 +2,7 @@ autoload colors
 
 # use `spectrum_ls` command for getting color scale
 
+export WHITE="251"
 export GRAY="244"
 export GREEN="002"
 export YELLOW="190"
