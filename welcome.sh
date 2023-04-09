@@ -13,12 +13,16 @@ SUBTITLE_COLOR=$GREEN
 COLON_COLOR=$GRAY
 INFO_COLOR=$GRAY
 
+OS_COLOR="$GREEN $GRAY 028 034 010 046"
+
 if [[ $EUID -ne 0 ]]; then
     TITLE_COLOR=$GREEN
     SUBTITLE_COLOR=$GREEN
+    OS_COLOR="$GREEN $GRAY 028 034 010 046"
 else
     TITLE_COLOR=$RED
     SUBTITLE_COLOR=$RED
+    OS_COLOR="$RED $GRAY 001 009 052 088"
 fi
 
 neofetch=`neofetch \
@@ -30,7 +34,9 @@ neofetch=`neofetch \
   --disk_display barinfo \
   --cpu_speed on \
   --cpu_temp C \
-  --colors $TITLE_COLOR $AT_COLOR $UNDERLINE_COLOR $SUBTITLE_COLOR $COLON_COLOR $INFO_COLOR
+  --colors $TITLE_COLOR $AT_COLOR $UNDERLINE_COLOR $SUBTITLE_COLOR $COLON_COLOR $INFO_COLOR \
+  --ascii_colors $OS_COLOR \
+#   --ascii_distro macos # debug
 `
 
 hostName=`uname -n`
