@@ -28,4 +28,4 @@ ZSH_THEME_GIT_PROMPT_DIRTY="*"
 ZSH_THEME_GIT_PROMPT_CLEAN=""
 
 PROMPT='%B$(prompt)%b '
-RPROMPT='$(git_prompt_info)$(return_status)'
+RPROMPT='$(git_prompt_info)'
