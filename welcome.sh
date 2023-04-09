@@ -35,6 +35,7 @@ neofetch=`neofetch \
   --cpu_speed on \
   --cpu_temp C \
   --colors $TITLE_COLOR $AT_COLOR $UNDERLINE_COLOR $SUBTITLE_COLOR $COLON_COLOR $INFO_COLOR \
+  --color_blocks off \
   --ascii_colors $OS_COLOR \
 #   --ascii_distro macos # debug
 `
