@@ -1,3 +1,10 @@
+rm -r ~/.gitconfig 
+rm -r ~/.zshrc 
+rm -r ~/.oh-my-zsh/themes/lambda-00x097.zsh-theme
+rm -r /etc/updated-motd.d/welcome.sh
+rm -r /etc/profile.d/welcome.sh
+rm -r /etc/ssh/sshd_config
+
 ln -s $(pwd)/.gitconfig ~/.gitconfig
 
 ln -s $(pwd)/.zshrc ~/.zshrc
