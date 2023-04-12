@@ -71,7 +71,7 @@ ZSH_THEME="lambda-00x097"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 source /root/linux.config/plugins
-plugins=$ZSH_INIT_PLUGINS
+plugins=(${ZSH_INIT_PLUGINS[@]})
 
 source $ZSH/oh-my-zsh.sh
 
