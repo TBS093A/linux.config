@@ -1,1 +1,1 @@
-export ZSH_INIT_PLUGINS=( git zsh-autosuggestions zsh-syntax-highlighting )
+ZSH_INIT_PLUGINS=(git zsh-autosuggestions zsh-syntax-highlighting)
