@@ -70,7 +70,9 @@ ZSH_THEME="lambda-00x097"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+source /root/linux.config/plugins
+
+plugins=$plugins
 
 source $ZSH/oh-my-zsh.sh
 
