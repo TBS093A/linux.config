@@ -1,1 +1,1 @@
-export plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+export ZSH_PLUGINS=(git zsh-autosuggestions zsh-syntax-highlighting)
