@@ -37,8 +37,8 @@ neofetch=`neofetch \
   --colors $TITLE_COLOR $AT_COLOR $UNDERLINE_COLOR $SUBTITLE_COLOR $COLON_COLOR $INFO_COLOR \
   --color_blocks off \
   --ascii_colors $OS_COLOR \
-#   --ascii_distro macos # debug
 `
+#   --ascii_distro macos # debug
 
 hostName=`uname -n`
 diskSpace=`df -Ph | grep xvda1 | awk '{print $4}' | tr -d '\n'`
