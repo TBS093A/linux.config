@@ -144,6 +144,11 @@ call plug#begin()
 
     " loading lua scripts
 
+      " lualine loading
+
+        au VimEnter * lua require("lualine").setup()
+
+
       " toggleterm loading
 
         au VimEnter * lua require("toggleterm").setup()
