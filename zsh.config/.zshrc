@@ -70,7 +70,7 @@ ZSH_THEME="lambda-00x097"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-source /root/linux.config/plugins
+source /root/linux.config/zsh.config/plugins
 plugins=(${ZSH_INIT_PLUGINS[@]})
 
 source $ZSH/oh-my-zsh.sh
@@ -100,3 +100,5 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
