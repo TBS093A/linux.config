@@ -5,7 +5,6 @@ rm -r /etc/updated-motd.d/welcome.sh
 rm -r /etc/profile.d/welcome.sh
 rm -r /etc/ssh/sshd_config
 rm -r ~/.config/nvim/init.vim
-rm -r ~/.config/nvim/init.lua
 
 ln -s $(pwd)/git.config/.gitconfig ~/.gitconfig
 
@@ -17,4 +16,4 @@ ln -s $(pwd)/sshd.ssh.config/welcome.sh /etc/profile.d/welcome.sh
 ln -s $(pwd)/sshd.ssh.config/sshd_config /etc/ssh/sshd_config
 
 ln -s $(pwd)/vim.config/init.vim ~/.config/nvim/init.vim
-ln -s $(pwd)/vim.config/init.lua ~/.config/nvim/init.lua
+

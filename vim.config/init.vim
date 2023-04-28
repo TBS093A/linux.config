@@ -94,6 +94,12 @@ call plug#begin()
   " https://github.com/romgrk/barbar.nvim
     Plug 'romgrk/barbar.nvim'
 
+  " vim-visual-multi - multiline editing
+  " It's called vim-visual-multi in analogy with visual-block
+  " but the plugin works mostly from normal mode.
+  " https://github.com/mg979/vim-visual-multi
+    Plug 'mg979/vim-visual-multi', {'branch': 'master'}
+
   " vscode.nvim (formerly codedark.nvim) is a Lua port of vim-code-dark colorscheme 
   " for neovim with VScode's light and dark theme
   " https://github.com/Mofiqul/vscode.nvim
@@ -144,14 +150,82 @@ call plug#begin()
 
     " loading lua scripts
 
+      " bufferline loading
+
+        au VimEnter * lua require("bufferline").setup({
+          \ ioptions = {
+	  \   buffer_close_icon = "",
+          \   close_command = "bdelete %d",
+          \   close_icon = "",
+          \   indicator = {
+	  \     style = "icon",
+	  \     icon = " ",
+          \   },
+          \   left_trunc_marker = "",
+          \   modified_icon = "●",
+          \   offsets = { { filetype = "NvimTree", text = "EXPLORER", text_align = "center" } },
+          \   right_mouse_command = "bdelete! %d",
+          \   right_trunc_marker = "",
+          \   show_close_icon = false,
+          \   show_tab_indicators = true,
+          \ },
+          \ highlights = {
+          \   fill = {
+	  \     fg = { attribute = "fg", highlight = "Normal" },
+          \     bg = { attribute = "bg", highlight = "StatusLineNC" },
+          \   },
+          \   background = {
+          \     fg = { attribute = "fg", highlight = "Normal" },
+          \     bg = { attribute = "bg", highlight = "StatusLine" },
+          \   },
+          \   buffer_visible = {
+          \     fg = { attribute = "fg", highlight = "Normal" },
+          \     bg = { attribute = "bg", highlight = "Normal" },
+          \   },
+          \   buffer_selected = {
+          \     fg = { attribute = "fg", highlight = "Normal" },
+          \     bg = { attribute = "bg", highlight = "Normal" },
+          \   },
+          \   separator = {
+          \     fg = { attribute = "bg", highlight = "Normal" },
+          \     bg = { attribute = "bg", highlight = "StatusLine" },
+          \   },
+          \   separator_selected = {
+          \     fg = { attribute = "fg", highlight = "Special" },
+          \     bg = { attribute = "bg", highlight = "Normal" },
+          \   },
+          \   separator_visible = {
+          \     fg = { attribute = "fg", highlight = "Normal" },
+          \     bg = { attribute = "bg", highlight = "StatusLineNC" },
+          \   },
+          \   close_button = {
+          \     fg = { attribute = "fg", highlight = "Normal" },
+          \     bg = { attribute = "bg", highlight = "StatusLine" },
+          \   },
+          \   close_button_selected = {
+          \     fg = { attribute = "fg", highlight = "Normal" },
+          \     bg = { attribute = "bg", highlight = "Normal" },
+          \   },
+          \   close_button_visible = {
+          \     fg = { attribute = "fg", highlight = "Normal" },
+          \     bg = { attribute = "bg", highlight = "Normal" },
+	  \   },
+	  \ },
+        \ })
+
+
       " lualine loading
 
         au VimEnter * lua require("lualine").setup()
 
-
       " toggleterm loading
 
         au VimEnter * lua require("toggleterm").setup()
+
+	" toggleterm configuration
+	
+          " au VimEnter * lua require("toggleterm.config")
+	  " au VimEnter * lua vim.cmd("autocmd! TermOpen term://*toggleterm#* lua set_terminal_keymaps()")
 
       " nvimtree loading
 
@@ -236,62 +310,91 @@ call plug#begin()
 	
 	  " Move to previous/next
 		
-	        nnoremap <silent>    <A-,> <Cmd>BufferPrevious<CR>
-		nnoremap <silent>    <A-.> <Cmd>BufferNext<CR>
+	    nnoremap <silent>    <A-,> <Cmd>BufferPrevious<CR>
+	    nnoremap <silent>    <A-.> <Cmd>BufferNext<CR>
 
-		" Re-order to previous/next
-		nnoremap <silent>    <A-<> <Cmd>BufferMovePrevious<CR>
-		nnoremap <silent>    <A->> <Cmd>BufferMoveNext<CR>
+	  " Re-order to previous/next
+	    
+	    nnoremap <silent>    <A-<> <Cmd>BufferMovePrevious<CR>
+	    nnoremap <silent>    <A->> <Cmd>BufferMoveNext<CR>
 
-		" Goto buffer in position...
-		nnoremap <silent>    <A-1> <Cmd>BufferGoto 1<CR>
-		nnoremap <silent>    <A-2> <Cmd>BufferGoto 2<CR>
-		nnoremap <silent>    <A-3> <Cmd>BufferGoto 3<CR>
-		nnoremap <silent>    <A-4> <Cmd>BufferGoto 4<CR>
-		nnoremap <silent>    <A-5> <Cmd>BufferGoto 5<CR>
-		nnoremap <silent>    <A-6> <Cmd>BufferGoto 6<CR>
-		nnoremap <silent>    <A-7> <Cmd>BufferGoto 7<CR>
-		nnoremap <silent>    <A-8> <Cmd>BufferGoto 8<CR>
-		nnoremap <silent>    <A-9> <Cmd>BufferGoto 9<CR>
-		nnoremap <silent>    <A-0> <Cmd>BufferLast<CR>
+	  " Goto buffer in position...
+	     
+	    nnoremap <silent>    <A-1> <Cmd>BufferGoto 1<CR>
+	    nnoremap <silent>    <A-2> <Cmd>BufferGoto 2<CR>
+	    nnoremap <silent>    <A-3> <Cmd>BufferGoto 3<CR>
+	    nnoremap <silent>    <A-4> <Cmd>BufferGoto 4<CR>
+	    nnoremap <silent>    <A-5> <Cmd>BufferGoto 5<CR>
+	    nnoremap <silent>    <A-6> <Cmd>BufferGoto 6<CR>
+	    nnoremap <silent>    <A-7> <Cmd>BufferGoto 7<CR>
+	    nnoremap <silent>    <A-8> <Cmd>BufferGoto 8<CR>
+	    nnoremap <silent>    <A-9> <Cmd>BufferGoto 9<CR>
+	    nnoremap <silent>    <A-0> <Cmd>BufferLast<CR>
 
-		" Pin/unpin buffer
-		nnoremap <silent>    <A-p> <Cmd>BufferPin<CR>
+	  " Pin/unpin buffer
+	    
+	    nnoremap <silent>    <A-p> <Cmd>BufferPin<CR>
 
-		" Close buffer
-		nnoremap <silent>    <A-c> <Cmd>BufferClose<CR>
-		" Restore buffer
-		nnoremap <silent>    <A-s-c> <Cmd>BufferRestore<CR>
+  	  " Close buffer
+	
+	    nnoremap <silent>    <A-c> <Cmd>BufferClose<CR>
+	
+	  " Restore buffer
+	
+	    nnoremap <silent>    <A-s-c> <Cmd>BufferRestore<CR>
 
-		" Wipeout buffer
-		"                          :BufferWipeout
-		" Close commands
-		"                          :BufferCloseAllButCurrent
-		"                          :BufferCloseAllButVisible
-		"                          :BufferCloseAllButPinned
-		"                          :BufferCloseAllButCurrentOrPinned
-		"                          :BufferCloseBuffersLeft
-		"                          :BufferCloseBuffersRight
+          " Wipeout buffer
+	  "                          :BufferWipeout
+	  " Close commands
+	  "                          :BufferCloseAllButCurrent
+	  "                          :BufferCloseAllButVisible
+	  "                          :BufferCloseAllButPinned
+	  "                          :BufferCloseAllButCurrentOrPinned
+	  "                          :BufferCloseBuffersLeft
+	  "                          :BufferCloseBuffersRight
 
-		" Magic buffer-picking mode
-		nnoremap <silent> <C-p>    <Cmd>BufferPick<CR>
-		nnoremap <silent> <C-p>    <Cmd>BufferPickDelete<CR>
+	  " Magic buffer-picking mode
+	
+	    nnoremap <silent> <C-p>    <Cmd>BufferPick<CR>
+	    nnoremap <silent> <C-p>    <Cmd>BufferPickDelete<CR>
 
-		" Sort automatically by...
-		nnoremap <silent> <Space>bb <Cmd>BufferOrderByBufferNumber<CR>
-		nnoremap <silent> <Space>bd <Cmd>BufferOrderByDirectory<CR>
-		nnoremap <silent> <Space>bl <Cmd>BufferOrderByLanguage<CR>
-		nnoremap <silent> <Space>bw <Cmd>BufferOrderByWindowNumber<CR>
+	  " Sort automatically by...
+	
+	    nnoremap <silent> <Space>bb <Cmd>BufferOrderByBufferNumber<CR>
+	    nnoremap <silent> <Space>bd <Cmd>BufferOrderByDirectory<CR>
+	    nnoremap <silent> <Space>bl <Cmd>BufferOrderByLanguage<CR>
+	    nnoremap <silent> <Space>bw <Cmd>BufferOrderByWindowNumber<CR>
 
-		" Other:
-		" :BarbarEnable - enables barbar (enabled by default)
-		" :BarbarDisable - very bad command, should never be used
+	  " Other:
+	  " :BarbarEnable - enables barbar (enabled by default)
+	  " :BarbarDisable - very bad command, should never be used
         
 	" ToggleTerm shortcuts
 	
+	  autocmd TermEnter term://*toggleterm#*
+            \ tnoremap <silent><c-t> <Cmd>exe v:count1 . "ToggleTerm"<CR>
+
 	  nnoremap <silent> <A-t> <Cmd>exe v:count1 . "ToggleTerm"<CR>
           inoremap <silent> <A-t> <Esc><Cmd>exe v:count1 . "ToggleTerm"<CR>
 
+	  " Ctrl + \ + Ctrl + n - exit form terminal mode
+
+	" vim-visual-multi - multiline editing shortcuts
+	" https://github.com/mg979/vim-visual-multi/wiki/Quick-start
+	
+	  " ESC - exit mode
+	  " Ctrl + n - select the word under cursor
+	  " Ctrl + n - from visual mode, without word boundaries
+	  " Ctrl + Down - create cursors vertically down
+	  " Ctrl + Up - create cursors vertically up
+	  " \\A - select all occurences of word
+	  " \\/ - create section with regex search
+	  " \\\ - add single cursor at current position
+	  " \\gS - reselect set of regions of last VM session
+
+	  " Ctrl + LeftMouse - create a cursor where clicked
+	  " Ctrl + RightMouse - select a word where clicked
+	  " Alt + Ctrl + RightMouse - create column, from current cursot to clicekd position
 
 " Initialize plugin system
 " - Automatically executes `filetype plugin indent on` and `syntax enable`.
