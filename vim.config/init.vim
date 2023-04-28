@@ -337,7 +337,7 @@ call plug#begin()
             " Ctrl + t - open file in new tab that can be managed separately from the other buffers present
             " Ctrl + v -  to open the file in the buffer by dividing it vertically into two parts, 
               " if there was already an open file this will be displayed side by side with the new file
-            " Ctrl + h - to open the file like the command described above but dividing the buffer horizontally
+            " Ctrl + x - to open the file like the command described above but dividing the buffer horizontally
 	
 	" BarBar shortcuts
 	" https://github.com/romgrk/barbar.nvim
@@ -429,6 +429,11 @@ call plug#begin()
 	  " Ctrl + LeftMouse - create a cursor where clicked
 	  " Ctrl + RightMouse - select a word where clicked
 	  " Alt + Ctrl + RightMouse - create column, from current cursot to clicekd position
+
+	" Additional shortcut stuff
+	
+	  " add some keybindings for - copy / paste / cut (visual mode)
+	  " fix vim-visual-multi (select lines is throuble with Ctrl + n)
 
 " Initialize plugin system
 " - Automatically executes `filetype plugin indent on` and `syntax enable`.
