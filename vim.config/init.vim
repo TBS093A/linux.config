@@ -150,9 +150,39 @@ call plug#begin()
 
     " loading lua scripts
 
+      " vscode.nvim loading
+
+        au VimEnter * lua vim.o.background = "dark"
+
+        au VimEnter * lua require("vscode").setup({
+	\
+	\     local c = require("vscode.colors").get_colors()
+	\
+	\     transparent = true,
+        \
+        \     italic_comments = true,
+        \
+        \     disable_nvimtree_bg = true,
+        \
+        \     color_overrides = {
+        \       vscLineNumber = '#FFFFFF',
+        \     },
+        \
+        \     group_overrides = {  
+        \       Cursor = {   
+	\	  fg   = c.vscDarkBlue, 
+	\	  bg   = c.vscLightGreen, 
+	\	  bold = true 
+	\	},
+        \     }, 
+        \ })
+
+	au VimEnter * lua require("vscode").load()
+
+
       " bufferline loading
 
-        au VimEnter * lua require("bufferline").setup({
+        au VimEnter * lua require("bufferline").setup({ 
           \ ioptions = {
 	  \   buffer_close_icon = "",
           \   close_command = "bdelete %d",
@@ -209,14 +239,18 @@ call plug#begin()
           \   close_button_visible = {
           \     fg = { attribute = "fg", highlight = "Normal" },
           \     bg = { attribute = "bg", highlight = "Normal" },
-	  \   },
+          \   },
 	  \ },
         \ })
 
 
       " lualine loading
 
-        au VimEnter * lua require("lualine").setup()
+        au VimEnter * lua require("lualine").setup({
+        \  options = {
+        \    theme = 'vscode'
+        \  },
+        \ })
 
       " toggleterm loading
 
