@@ -434,6 +434,10 @@ call plug#begin()
 	
 	  " add some keybindings for - copy / paste / cut (visual mode)
 	  " fix vim-visual-multi (select lines is throuble with Ctrl + n)
+	  " repair Ctrl + v NvimTree Error (it working by ssh via CMD but it
+	  " doesn't work via VSC integrated terminal - reason can be in Ctrl +
+	  " v binding usage - VSC not apply shotcuts like that and Nvim gets
+	  " errors)
 
 " Initialize plugin system
 " - Automatically executes `filetype plugin indent on` and `syntax enable`.
