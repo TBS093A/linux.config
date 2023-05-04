@@ -416,12 +416,14 @@ call plug#begin()
 	" vim-visual-multi - multiline editing shortcuts
 	" https://github.com/mg979/vim-visual-multi/wiki/Quick-start
 	
-	  " ESC - exit mode
+	  " ESC - exit mode                          
 	  " Ctrl + n - select the word under cursor
 	  " Ctrl + n - from visual mode, without word boundaries
-	  " Ctrl + Down - create cursors vertically down
-	  " Ctrl + Up - create cursors vertically up
-	  " \\A - select all occurences of word
+	  " Ctrl + Down - create cursors vertically down (works on normal mode only)
+	  " Ctrl + Up - create cursors vertically up (works on normal mode only)
+	  " Q - remove region (cusrsor) (works on normal mode only)
+	  " n / N / q - Next / Previous / Skip (works on normal mode only)
+	  " \\A - select all occurences of word      
 	  " \\/ - create section with regex search
 	  " \\\ - add single cursor at current position
 	  " \\gS - reselect set of regions of last VM session
