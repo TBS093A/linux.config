@@ -412,6 +412,7 @@ call plug#begin()
           inoremap <silent> <A-t> <Esc><Cmd>exe v:count1 . "ToggleTerm"<CR>
 
 	  " Ctrl + \ + Ctrl + n - exit form terminal mode
+	  " a - terminal mode (when terminal pane is selected)
 
 	" vim-visual-multi - multiline editing shortcuts
 	" https://github.com/mg979/vim-visual-multi/wiki/Quick-start
@@ -433,7 +434,17 @@ call plug#begin()
 	  " Alt + Ctrl + RightMouse - create column, from current cursot to clicekd position
 
 	" Additional shortcut stuff
-	
+	  
+	  " Hold Shift + RightMouseClick (and mouse move for text select) + Enter - copy from vim / nvim to shitty windows clipboard
+          " Ctrl + Shift + V - paste from windows clipboard
+	  " y - copy from visual mode (after select text (from text editor &
+	  " terminal also))
+	  " d - cut --"--
+	  " P - paste before cursor (normal mode or visual mode (when you want
+	  " replace something)
+	  " p - paste after cursor (normal mode or visual mode (when you want
+	  " replace something)
+
 	  " add some keybindings for - copy / paste / cut (visual mode)
 	  " fix vim-visual-multi (select lines is throuble with Ctrl + n)
 	  " repair Ctrl + v NvimTree Error (it working by ssh via CMD but it
