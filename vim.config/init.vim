@@ -295,7 +295,10 @@ call plug#begin()
           nnoremap <C-s> :w\|bd<CR> 
 
         " set paste shorcut (Ctrl + Shift + V)
-          " set paste
+          set paste
+
+        " set tab size
+          set tabstop=4
 
         " vim panes switching
           " map  <C-l> :tabn<CR>        " Ctrl + l
