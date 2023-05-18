@@ -105,6 +105,8 @@ source $ZSH/oh-my-zsh.sh
 
 alias tmux-session=/root/linux.config/tmux.config/tmux.session.sh
 
+alias add-tbs093a-git-id='eval "$(ssh-agent -s)"; ssh-add ~/.ssh/git_accesses'
+
 # Generated for envman. Do not edit.
 [ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"
 
