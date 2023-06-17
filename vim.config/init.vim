@@ -63,6 +63,12 @@ call plug#begin()
   " https://vimawesome.com/plugin/vim-workspace
     Plug 'thaerkh/vim-workspace'
 
+" Highlights plugins
+
+  " Jenkinsfile syntax highlighting
+  " https://vimawesome.com/plugin/vim-jenkinsfile
+    Plug 'thanethomson/vim-jenkinsfile'
+
 " Visual Studio Code plugins
 
   " coloured icons & explorer
@@ -82,11 +88,22 @@ call plug#begin()
     " cd ~/.local/share/fonts/Hermit && unzip Hermit.zip
     " cd ~ && fc-cache -fv 
 
-  " YouCompleteMe a code-completion engine for Vim
+  " Copilot - AI completion
+  " https://github.com/github/copilot.vim
+    Plug 'github/copilot.vim' 
+
+  " YouCompleteMe a code-completion (C / C++ / Java) engine for Vim
   " you must install some dependecies manually:
   " https://github.com/ycm-core/YouCompleteMe#linux-64-bit
   " https://vimawesome.com/plugin/youcompleteme#python-semantic-completion
   " Plug 'valloric/youcompleteme'
+
+  " Python code completion plugin - Jedi-vim
+  " https://github.com/davidhalter/jedi-vim
+    Plug 'davidhalter/jedi-vim'
+
+	" jedi-vim not working with 'set paste' option, 
+	" disable it by 'set nopaste' for use this plugin
 
   " tabline plugin with re-orderable, auto-sizing, clickable tabs, icons,
   " nice highlighting, sort-by commands and a magic jump-to-buffer mode
@@ -272,10 +289,26 @@ call plug#begin()
           " set termguicolors to enable highlight groups
           au VimEnter * lua vim.opt.termguicolors = true
 
+    " jedi-vim configuration
+ 
+      let g:jedi#use_tabs_not_buffers = 1
+      let g:jedi#use_splits_not_buffers = "left"
+      let g:jedi#environment_path = "/usr/bin/python3"
+
+    " Copilot configuration
+
+      au VimEnter * Copilot setup
+
     " startup
 
       " display code line numbers by default
         set number
+
+      " set paste from host system in insert mode (Ctrl + Shift + V)
+        set paste
+         
+      " set tab size
+        set tabstop=4
 
       " install plugins automatically
         autocmd VimEnter *
@@ -292,13 +325,7 @@ call plug#begin()
     " shortcut mapping
 
         " insert mode shorcuts
-          nnoremap <C-s> :w\|bd<CR> 
-
-        " set paste shorcut (Ctrl + Shift + V)
-          set paste
-
-        " set tab size
-          set tabstop=4
+          nnoremap <C-s> :w\|bd<CR>
 
         " vim panes switching
           " map  <C-l> :tabn<CR>        " Ctrl + l
@@ -416,6 +443,10 @@ call plug#begin()
 
 	  " Ctrl + \ + Ctrl + n - exit form terminal mode
 	  " a - terminal mode (when terminal pane is selected)
+
+    " Jedi-vim shortcuts (:help jedi-vim)
+
+      " g:jedi#completions_command Ctrl + Space
 
 	" vim-visual-multi - multiline editing shortcuts
 	" https://github.com/mg979/vim-visual-multi/wiki/Quick-start
