@@ -71,6 +71,10 @@ call plug#begin()
 
 " Visual Studio Code plugins
 
+  " code formatter
+  " https://github.com/mhartington/formatter.nvim
+	Plug 'mhartington/formatter.nvim'
+
   " coloured icons & explorer
   " https://github.com/nvim-tree/nvim-tree.lua
     Plug 'nvim-tree/nvim-tree.lua'
@@ -86,11 +90,11 @@ call plug#begin()
     " mv Hermit.zip ~/.local/share/fonts/Hermit
     " cd ~/.local/share/fonts/Cascadia && unzip CascadiaCode.zip
     " cd ~/.local/share/fonts/Hermit && unzip Hermit.zip
-    " cd ~ && fc-cache -fv 
+    " cd ~ && fc-cache -fv
 
   " Copilot - AI completion
   " https://github.com/github/copilot.vim
-    Plug 'github/copilot.vim' 
+    Plug 'github/copilot.vim'
 
   " YouCompleteMe a code-completion (C / C++ / Java) engine for Vim
   " you must install some dependecies manually:
@@ -102,7 +106,7 @@ call plug#begin()
   " https://github.com/davidhalter/jedi-vim
     Plug 'davidhalter/jedi-vim'
 
-	" jedi-vim not working with 'set paste' option, 
+	" jedi-vim not working with 'set paste' option,
 	" disable it by 'set nopaste' for use this plugin
 
   " tabline plugin with re-orderable, auto-sizing, clickable tabs, icons,
@@ -117,7 +121,7 @@ call plug#begin()
   " https://github.com/mg979/vim-visual-multi
     Plug 'mg979/vim-visual-multi', {'branch': 'master'}
 
-  " vscode.nvim (formerly codedark.nvim) is a Lua port of vim-code-dark colorscheme 
+  " vscode.nvim (formerly codedark.nvim) is a Lua port of vim-code-dark colorscheme
   " for neovim with VScode's light and dark theme
   " https://github.com/Mofiqul/vscode.nvim
     Plug 'Mofiqul/vscode.nvim'
@@ -137,15 +141,15 @@ call plug#begin()
   " https://github.com/nvim-lualine/lualine.nvim
     Plug 'nvim-lualine/lualine.nvim'
 
-  " highly extendable fuzzy finder over lists. 
-  " Built on the latest awesome features from neovim core. 
+  " highly extendable fuzzy finder over lists.
+  " Built on the latest awesome features from neovim core.
   " Telescope is centered around modularity, allowing for easy customization.
   " https://github.com/nvim-telescope/telescope.nvim
     Plug 'nvim-lua/plenary.nvim'
     Plug 'nvim-telescope/telescope.nvim', { 'tag': '0.1.1' }
 
-  " The goal of nvim-treesitter is both to provide a simple and easy way 
-  " to use the interface for tree-sitter in Neovim and to provide some 
+  " The goal of nvim-treesitter is both to provide a simple and easy way
+  " to use the interface for tree-sitter in Neovim and to provide some
   " basic functionality such as highlighting
   " https://github.com/nvim-treesitter/nvim-treesitter
     Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
@@ -155,8 +159,8 @@ call plug#begin()
     Plug 'akinsho/toggleterm.nvim', {'tag' : '*'}
 
   " NeoVIM customization section
-    
-    " set font for gui 
+
+    " set font for gui
     " (if you want the same thing in console - you must change default consolefont)
     " (if you use ssh connection you must set nerd fonts on your local machine)
     " (windows - https://www.thewindowsclub.com/add-custom-fonts-to-command-prompt)
@@ -165,7 +169,30 @@ call plug#begin()
 
       au VimEnter * lua vim.opt.guifont='Hurmit NF:style=bold'
 
+	" mhartington/formatter.nvim
+	" format after save
+
+	  augroup FormatAutogroup
+	    autocmd!
+	    autocmd BufWritePost * FormatWrite
+	  augroup END
+
     " loading lua scripts
+
+	  " mhartington/formatter.nvim loading
+
+	    au VimEnter * lua require('formatter').setup({
+		\   logging = false,
+		\   filetype = {
+        \     python = {
+        \       require('formatter.filetypes.python').black
+        \     },
+		\     ["*"] = {
+		\       require('formatter.filetypes.any').remove_trailing_whitespace
+		\     }
+		\   }
+		\ })
+
 
       " vscode.nvim loading
 
@@ -185,13 +212,13 @@ call plug#begin()
         \       vscLineNumber = '#FFFFFF',
         \     },
         \
-        \     group_overrides = {  
-        \       Cursor = {   
-	\	  fg   = c.vscDarkBlue, 
-	\	  bg   = c.vscLightGreen, 
-	\	  bold = true 
+        \     group_overrides = {
+        \       Cursor = {
+	\	  fg   = c.vscDarkBlue,
+	\	  bg   = c.vscLightGreen,
+	\	  bold = true
 	\	},
-        \     }, 
+        \     },
         \ })
 
 	au VimEnter * lua require("vscode").load()
@@ -199,7 +226,7 @@ call plug#begin()
 
       " bufferline loading
 
-        au VimEnter * lua require("bufferline").setup({ 
+        au VimEnter * lua require("bufferline").setup({
           \ ioptions = {
 	  \   buffer_close_icon = "",
           \   close_command = "bdelete %d",
@@ -274,7 +301,7 @@ call plug#begin()
         au VimEnter * lua require("toggleterm").setup()
 
 	" toggleterm configuration
-	
+
           " au VimEnter * lua require("toggleterm.config")
 	  " au VimEnter * lua vim.cmd("autocmd! TermOpen term://*toggleterm#* lua set_terminal_keymaps()")
 
@@ -290,7 +317,7 @@ call plug#begin()
           au VimEnter * lua vim.opt.termguicolors = true
 
     " jedi-vim configuration
- 
+
       let g:jedi#use_tabs_not_buffers = 1
       let g:jedi#use_splits_not_buffers = "left"
       let g:jedi#environment_path = "/usr/bin/python3"
@@ -306,9 +333,11 @@ call plug#begin()
 
       " set paste from host system in insert mode (Ctrl + Shift + V)
         set paste
-         
+
       " set tab size
         set tabstop=4
+		set shiftwidth=4
+		set expandtab
 
       " install plugins automatically
         autocmd VimEnter *
@@ -321,7 +350,7 @@ call plug#begin()
 
       " run nvim-tree automatically
         au VimEnter * NvimTreeToggle
-        
+
     " shortcut mapping
 
         " insert mode shorcuts
@@ -344,10 +373,13 @@ call plug#begin()
 
           " files
 
+            " H - shows or hides hidden files
+			" I - show ignored files by .gitignore
+
             " a - (add) allows the creation of files or folders, creating a folder is done by following the name with the slash /.
-              " E.g. /nvchad/nvimtree.md will create the related markdown file while /nvchad/nvimtree/ will create the nvimtree 
+              " E.g. /nvchad/nvimtree.md will create the related markdown file while /nvchad/nvimtree/ will create the nvimtree
               " folder. The creation will occur by default at the location where the cursor is in the file explorer at that time,
-              " so the selection of the folder where to create the file will have to be done previously or alternatively 
+              " so the selection of the folder where to create the file will have to be done previously or alternatively
               " you can write the full path in the statusline, in writing the path you can make use of the auto-complete function
             " Ctrl + r - to rename the file regardless of its original name
             " d - (delete) to delete the selected file or in case of a folder delete the folder with all its contents
@@ -358,32 +390,32 @@ call plug#begin()
             " y - to copy only the file name to the clipboard
             " Y - to copy the relative path
             " g + y - to copy the absolute path
-          
+
           " opening modes
 
             " Enter - open as normal without splitting
-            " Tab - to open the file in a new buffer while keeping the cursor in `nvimtree`, 
+            " Tab - to open the file in a new buffer while keeping the cursor in `nvimtree`,
               " this for example is useful if you want to open several files at once
             " Ctrl + t - open file in new tab that can be managed separately from the other buffers present
-            " Ctrl + v -  to open the file in the buffer by dividing it vertically into two parts, 
+            " Ctrl + v -  to open the file in the buffer by dividing it vertically into two parts,
               " if there was already an open file this will be displayed side by side with the new file
             " Ctrl + x - to open the file like the command described above but dividing the buffer horizontally
-	
+
 	" BarBar shortcuts
 	" https://github.com/romgrk/barbar.nvim
-	
+
 	  " Move to previous/next
-		
+
 	    nnoremap <silent>    <A-,> <Cmd>BufferPrevious<CR>
 	    nnoremap <silent>    <A-.> <Cmd>BufferNext<CR>
 
 	  " Re-order to previous/next
-	    
+
 	    nnoremap <silent>    <A-<> <Cmd>BufferMovePrevious<CR>
 	    nnoremap <silent>    <A->> <Cmd>BufferMoveNext<CR>
 
 	  " Goto buffer in position...
-	     
+
 	    nnoremap <silent>    <A-1> <Cmd>BufferGoto 1<CR>
 	    nnoremap <silent>    <A-2> <Cmd>BufferGoto 2<CR>
 	    nnoremap <silent>    <A-3> <Cmd>BufferGoto 3<CR>
@@ -396,15 +428,15 @@ call plug#begin()
 	    nnoremap <silent>    <A-0> <Cmd>BufferLast<CR>
 
 	  " Pin/unpin buffer
-	    
+
 	    nnoremap <silent>    <A-p> <Cmd>BufferPin<CR>
 
   	  " Close buffer
-	
+
 	    nnoremap <silent>    <A-c> <Cmd>BufferClose<CR>
-	
+
 	  " Restore buffer
-	
+
 	    nnoremap <silent>    <A-s-c> <Cmd>BufferRestore<CR>
 
           " Wipeout buffer
@@ -418,12 +450,12 @@ call plug#begin()
 	  "                          :BufferCloseBuffersRight
 
 	  " Magic buffer-picking mode
-	
+
 	    nnoremap <silent> <C-p>    <Cmd>BufferPick<CR>
 	    nnoremap <silent> <C-p>    <Cmd>BufferPickDelete<CR>
 
 	  " Sort automatically by...
-	
+
 	    nnoremap <silent> <Space>bb <Cmd>BufferOrderByBufferNumber<CR>
 	    nnoremap <silent> <Space>bd <Cmd>BufferOrderByDirectory<CR>
 	    nnoremap <silent> <Space>bl <Cmd>BufferOrderByLanguage<CR>
@@ -432,9 +464,9 @@ call plug#begin()
 	  " Other:
 	  " :BarbarEnable - enables barbar (enabled by default)
 	  " :BarbarDisable - very bad command, should never be used
-        
+
 	" ToggleTerm shortcuts
-	
+
 	  autocmd TermEnter term://*toggleterm#*
             \ tnoremap <silent><c-t> <Cmd>exe v:count1 . "ToggleTerm"<CR>
 
@@ -450,15 +482,15 @@ call plug#begin()
 
 	" vim-visual-multi - multiline editing shortcuts
 	" https://github.com/mg979/vim-visual-multi/wiki/Quick-start
-	
-	  " ESC - exit mode                          
+
+	  " ESC - exit mode
 	  " Ctrl + n - select the word under cursor
 	  " Ctrl + n - from visual mode, without word boundaries
 	  " Ctrl + Down - create cursors vertically down (works on normal mode only)
 	  " Ctrl + Up - create cursors vertically up (works on normal mode only)
 	  " Q - remove region (cusrsor) (works on normal mode only)
 	  " n / N / q - Next / Previous / Skip (works on normal mode only)
-	  " \\A - select all occurences of word      
+	  " \\A - select all occurences of word
 	  " \\/ - create section with regex search
 	  " \\\ - add single cursor at current position
 	  " \\gS - reselect set of regions of last VM session
@@ -468,7 +500,7 @@ call plug#begin()
 	  " Alt + Ctrl + RightMouse - create column, from current cursot to clicekd position
 
 	" Additional shortcut stuff
-	  
+
 	  " Hold Shift + RightMouseClick (and mouse move for text select) + Enter - copy from vim / nvim to shitty windows clipboard
           " Ctrl + Shift + V - paste from windows clipboard
 	  " y - copy from visual mode (after select text (from text editor &
