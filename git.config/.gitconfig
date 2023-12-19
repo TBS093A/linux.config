@@ -33,3 +33,5 @@ pshmrr		= !git push --mirror
 
 rmtadd 		= !git remote add
 rmtsturl	= !git remote set-url --add
+[http]
+	sslVerify = false
