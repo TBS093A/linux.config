@@ -1,1 +1,3 @@
-VPNS_LIST=(vpn.sii.pl vpn-projects.sii.pl)
+# Add your own VPN hostnames here. Employer/private VPN hosts should go in
+# vpn.config/vpns.local instead (gitignored, see vpns.local.example).
+VPNS_LIST=()

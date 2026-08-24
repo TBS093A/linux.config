@@ -33,5 +33,10 @@ pshmrr		= !git push --mirror
 
 rmtadd 		= !git remote add
 rmtsturl	= !git remote set-url --add
-[http]
+
+# git.00x097.com is my own Gitea instance, reachable only over VPN on an
+# isolated network — relaxed TLS/postBuffer settings are scoped to it only
+# so they don't weaken git operations against other remotes (e.g. GitHub).
+[http "https://git.00x097.com/"]
 	sslVerify = false
+	postBuffer = 524288000

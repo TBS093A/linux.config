@@ -1,20 +1,27 @@
-rm -r ~/.gitconfig 
-rm -r ~/.zshrc 
-rm -r ~/.oh-my-zsh/themes/lambda-00x097.zsh-theme
-rm -r /etc/updated-motd.d/welcome.sh
-rm -r /etc/profile.d/welcome.sh
-rm -r /etc/ssh/sshd_config
-rm -r ~/.config/nvim/init.vim
+#!/usr/bin/env bash
+set -euo pipefail
 
-ln -s $(pwd)/git.config/.gitconfig ~/.gitconfig
+DOTFILES_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
-ln -s $(pwd)/zsh.config/.zshrc ~/.zshrc
-ln -s $(pwd)/zsh.config/lambda-00x097.zsh-theme ~/.oh-my-zsh/themes/lambda-00x097.zsh-theme
+link_user_configs() {
+	ln -sf "$DOTFILES_DIR/git.config/.gitconfig" ~/.gitconfig
+	ln -sf "$DOTFILES_DIR/zsh.config/.zshrc" ~/.zshrc
+	ln -sf "$DOTFILES_DIR/zsh.config/lambda-00x097.zsh-theme" ~/.oh-my-zsh/themes/lambda-00x097.zsh-theme
 
-ln -s $(pwd)/sshd.ssh.config/welcome.sh /etc/updated-motd.d/welcome.sh
-ln -s $(pwd)/sshd.ssh.config/welcome.sh /etc/profile.d/welcome.sh
-ln -s $(pwd)/sshd.ssh.config/sshd_config /etc/ssh/sshd_config
+	mkdir -p ~/.config/nvim
+	ln -sf "$DOTFILES_DIR/vim.config/init.vim" ~/.config/nvim/init.vim
+}
 
-ln -s $(pwd)/vim.config/init.vim ~/.config/nvim/init.vim
+link_system_configs() {
+	sudo ln -sf "$DOTFILES_DIR/sshd.ssh.config/welcome.sh" /etc/updated-motd.d/welcome.sh
+	sudo ln -sf "$DOTFILES_DIR/sshd.ssh.config/welcome.sh" /etc/profile.d/welcome.sh
+	sudo ln -sf "$DOTFILES_DIR/sshd.ssh.config/sshd_config" /etc/ssh/sshd_config
+}
 
+link_user_configs
 
+if [[ "${1:-}" == "--system" ]]; then
+	link_system_configs
+else
+	echo "Skipped system-wide configs (motd, sshd_config) - re-run with --system to link those (needs sudo)."
+fi

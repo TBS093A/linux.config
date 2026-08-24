@@ -1,5 +1,18 @@
+# Resolves to the repo root regardless of where it's cloned, by following
+# the ~/.zshrc symlink make.symlinks.sh creates back to its source.
+DOTFILES_DIR="$(dirname "$(dirname "$(readlink -f "$HOME/.zshrc")")")"
+
+# vpn connectivity commands aliases
+
+alias vpn-00x097-connect='sudo wg-quick up wg0-00x097'
+alias vpn-00x097-disconnect='sudo wg-quick down wg0-00x097'
+
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
+
+# Host-specific / employer aliases (ssh shortcuts, k8s node queries, etc.)
+# live in .zshrc.local (gitignored) - see .zshrc.local.example for the pattern.
+[ -f "$DOTFILES_DIR/zsh.config/.zshrc.local" ] && source "$DOTFILES_DIR/zsh.config/.zshrc.local"
 
 # Path to your oh-my-zsh installation.
 export ZSH="$HOME/.oh-my-zsh"
@@ -70,7 +83,7 @@ ZSH_THEME="lambda-00x097"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-source /root/linux.config/zsh.config/plugins
+source "$DOTFILES_DIR/zsh.config/plugins"
 plugins=(${ZSH_INIT_PLUGINS[@]})
 
 source $ZSH/oh-my-zsh.sh
@@ -103,7 +116,7 @@ source $ZSH/oh-my-zsh.sh
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-alias tmux-session=/root/linux.config/tmux.config/tmux.session.sh
+alias tmux-session="$DOTFILES_DIR/tmux.config/tmux.session.sh"
 
 alias add-tbs093a-git-id='eval "$(ssh-agent -s)"; ssh-add ~/.ssh/git_accesses'
 
@@ -112,3 +125,6 @@ alias k8s=kubectl
 # Generated for envman. Do not edit.
 [ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"
 
+
+autoload -U +X bashcompinit && bashcompinit
+complete -o nospace -C /usr/local/terraform/terraform terraform

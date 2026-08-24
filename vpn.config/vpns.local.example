@@ -1,0 +1,4 @@
+# Copy this file to vpn.config/vpns.local (gitignored) and fill in
+# private/employer VPN hostnames. connect.sh sources it automatically
+# if present, appending to VPNS_LIST from vpn.config/vpns.
+VPNS_LIST+=(vpn.example-employer.com)

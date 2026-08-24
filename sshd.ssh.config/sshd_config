@@ -1,5 +1,10 @@
 #	$OpenBSD: sshd_config,v 1.104 2021/07/02 05:11:21 dtucker Exp $
 
+# NOTE before deploying (make.symlinks.sh --system + sshd reload/restart):
+# confirm key-based login works for every account that needs access
+# (e.g. `ssh -i ~/.ssh/hetzner_accesses root@host`) BEFORE relying on this
+# file, since it tightens root/password login behaviour vs. the stock default.
+
 # This is the sshd server system-wide configuration file.  See
 # sshd_config(5) for more information.
 
@@ -29,13 +34,12 @@
 # Authentication:
 
 #LoginGraceTime 2m
-#PermitRootLogin prohibit-password  
-PermitRootLogin yes
+PermitRootLogin prohibit-password
 #StrictModes yes
 #MaxAuthTries 6
 #MaxSessions 10
 
-PubkeyAuthentication no
+PubkeyAuthentication yes
 
 # The default is to check both .ssh/authorized_keys and .ssh/authorized_keys2
 # but this is overridden so installations will only check .ssh/authorized_keys

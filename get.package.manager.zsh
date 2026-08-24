@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-source /etc/*release
+source /etc/os-release
 
 typeset -A distro_mgr;
 distro_mgr[debian]=apt-get
@@ -15,6 +15,7 @@ for key val in ${(@kv)distro_mgr}
 do
 	if [[ $key = $ID ]];
 	then
+		export PKG_MGR=$val
 		echo Package manager: $val
 	fi
 

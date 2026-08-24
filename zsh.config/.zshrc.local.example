@@ -1,0 +1,7 @@
+# Copy this file to zsh.config/.zshrc.local (gitignored) and put
+# host-specific / employer aliases here - real IPs, internal hostnames,
+# k8s cluster queries, etc. .zshrc sources it automatically if present.
+
+alias ssh-node000='ssh -i ~/.ssh/hetzner_accesses root@203.0.113.10'
+
+alias k8s-pvc-per-node='kubectl get pv -o custom-columns="NAME:.metadata.name,CAPACITY:.spec.capacity.storage,CLAIM:.spec.claimRef.name,NODE:.spec.nodeAffinity.required.nodeSelectorTerms[0].matchExpressions[0].values[0]"'

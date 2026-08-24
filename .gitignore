@@ -1,0 +1,7 @@
+zsh.config/.zshrc.local
+vpn.config/vpns.local
+
+*.swp
+*.swo
+*~
+.DS_Store

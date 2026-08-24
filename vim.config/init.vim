@@ -94,7 +94,7 @@ call plug#begin()
 
   " Copilot - AI completion
   " https://github.com/github/copilot.vim
-    Plug 'github/copilot.vim'
+  "  Plug 'github/copilot.vim'
 
   " YouCompleteMe a code-completion (C / C++ / Java) engine for Vim
   " you must install some dependecies manually:
@@ -175,7 +175,8 @@ call plug#begin()
         augroup FormatAutogroup
             autocmd!
             autocmd BufWritePre * FormatWrite
-            autocmd BufReadPost,BufWritePre * :silent %s/\s\+$//ge | :silent %s/\t/    /ge
+            " Makefiles require literal tabs for recipe lines - retabbing them breaks `make`.
+            autocmd BufWritePre * if &filetype != 'make' | silent! %s/\s\+$//ge | silent! %s/\t/    /ge | endif
         augroup END
 
     " loading lua scripts
