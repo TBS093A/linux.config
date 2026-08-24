@@ -1,8 +1,9 @@
 # linux.config
 
-Personal dotfiles for [Void Linux](https://voidlinux.org/) (`void.node.00`) -
-shell configs, a custom login banner, VPN/tmux helpers, and a couple of
-Void-specific setup notes.
+Personal dotfiles built around [Void Linux](https://voidlinux.org/)
+(`void.node.00`) - shell configs, a custom login banner, VPN/tmux helpers,
+and a couple of Void-specific setup notes. `install.sh` isn't Void-only
+though - see Install below.
 
 ## Layout
 
@@ -17,21 +18,45 @@ sshd.ssh.config/ sshd_config + welcome.sh (the login banner, see below)
 distro.guide/   void.linux/README.md - Void install/xbps/runit cheat sheet
 get.package.manager.zsh  detects the box's package manager (apt/pacman/xbps/...)
 make.symlinks.sh         installs everything below (see Install)
+install.sh               bootstraps a bare box: packages + oh-my-zsh + symlinks
 ```
 
 ## Install
 
+On a fresh/bare box, one command sets up everything these dotfiles assume -
+packages, oh-my-zsh + its plugins, fzf's shell integration, and the
+symlinks below. The package manager is auto-detected (via
+`get.package.manager.zsh` - Void/`xbps`, Debian-Ubuntu/`apt`,
+Arch-Manjaro/`pacman`, CentOS-RHEL/`yum`), so this isn't Void-only:
+
 ```bash
 git clone <this repo> ~/linux.config   # any path works, nothing is hardcoded
 cd ~/linux.config
+./install.sh --local      # (default) full/desktop set - includes neovim
+./install.sh --server     # server set - skips neovim; asks whether to add Docker
+./install.sh --system     # combine with either: also link sshd_config + the MOTD banner (sudo)
+```
+
+Each package installs independently, so one missing/renamed package name
+on a given distro doesn't abort the run - it just warns and moves on.
+`install.sh` is also safe to re-run (every step checks whether it already
+ran). It never touches `/etc/passwd` or restarts services on its own - if
+zsh isn't your login shell yet, it tells you to run `chsh` yourself at
+the end.
+
+If you'd rather skip the package install (already have everything) and
+just re-point the symlinks:
+
+```bash
 ./make.symlinks.sh            # user-level dotfiles only (~/.gitconfig, ~/.zshrc, nvim config)
 sudo ./make.symlinks.sh --system   # also links sshd_config + the MOTD banner (needs root)
 ```
 
-`--system` is opt-in on purpose: it replaces `/etc/ssh/sshd_config` and the
-`/etc/updated-motd.d` / `/etc/profile.d` welcome script system-wide, so it's
-not something you want to run by accident. Re-running either form is safe
-(`ln -sf`, idempotent) - it just re-points the symlinks.
+`--system` is opt-in on purpose (in both scripts): it replaces
+`/etc/ssh/sshd_config` and the `/etc/updated-motd.d` / `/etc/profile.d`
+welcome script system-wide, so it's not something you want to run by
+accident. Re-running either form is safe (`ln -sf`, idempotent) - it just
+re-points the symlinks.
 
 Every script resolves its own location at runtime (`readlink -f` back
 through the relevant symlink), so it doesn't matter where you clone the
@@ -56,7 +81,7 @@ Runs on every login (`/etc/profile.d`) and on SSH connect via MOTD
 neofetch-based script (neofetch is unmaintained and isn't in the Void
 repos anymore) with a self-contained bash script that needs nothing beyond
 what's already on the box (`awk`, `free`, `df`, `xbps-query`, `numfmt`,
-`nproc`, `ip`, `ss`, optionally `docker`):
+`nproc`, `ip`, `ss`; `docker` and `kubectl` are optional and auto-detected):
 
 - Void's ascii logo, colored 1:1 against a real neofetch capture (green
   for a regular user, red as root), with a `© TBS093A` signature footer.
@@ -64,8 +89,12 @@ what's already on the box (`awk`, `free`, `df`, `xbps-query`, `numfmt`,
   CPU/RAM/DISK meters (colored red/yellow/green by usage), each with a
   compact branch line for the percentage + detail underneath.
 - A horizontal Load average + per-core row that wraps to fit the terminal.
-- Sessions / IP / Docker containers, side by side when they fit and
-  stacked full-width when the terminal's too narrow.
+- Sessions / IP / Docker containers / K8s node (name, role, scheduled
+  pods) - as a 2-4 column row, side by side when they fit and stacked
+  full-width when the terminal's too narrow. Docker and K8s each only
+  claim a column when there's actually something to show (docker
+  installed / this host registers as a reachable cluster node - `kubectl`
+  calls are timeout-guarded so an unconfigured client can't hang the banner).
 - An "Opened Ports" section (`ss -tulnp`, minimal) laid out as balanced
   branch-columns with a connector "roof", wrapped the same way as the
   cores row.
