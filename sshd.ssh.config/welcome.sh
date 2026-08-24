@@ -163,6 +163,28 @@ _welcome_banner() {
         done < <(docker ps --format '{{.Names}}' 2>/dev/null)
     fi
 
+    # Kubernetes node info - only shown if this host actually registers as a
+    # node in a reachable cluster. kubectl being installed proves nothing (it
+    # commonly sits around unconfigured), so every call is timeout-guarded to
+    # keep an unreachable/misconfigured client from hanging the login banner.
+    local k8s_node_name="" k8s_node_role=""
+    local -a k8s_pods=()
+    if command -v kubectl >/dev/null 2>&1; then
+        k8s_node_name=$(timeout 1 kubectl get node "$hostname" --request-timeout=1s -o jsonpath='{.metadata.name}' 2>/dev/null)
+        if [[ -n $k8s_node_name ]]; then
+            local k8s_labels=""
+            k8s_labels=$(timeout 1 kubectl get node "$k8s_node_name" --request-timeout=1s -o jsonpath='{.metadata.labels}' 2>/dev/null)
+            if [[ $k8s_labels == *"node-role.kubernetes.io/control-plane"* || $k8s_labels == *"node-role.kubernetes.io/master"* ]]; then
+                k8s_node_role="control-plane"
+            else
+                k8s_node_role="worker"
+            fi
+            while IFS= read -r kline; do
+                [[ -n $kline ]] && k8s_pods+=("$kline")
+            done < <(timeout 1 kubectl get pods --all-namespaces --field-selector "spec.nodeName=${k8s_node_name}" --request-timeout=1s -o custom-columns=NAME:.metadata.name --no-headers 2>/dev/null)
+        fi
+    fi
+
     # runit service health - only meaningful (and readable) as root
     local -a bad_services=()
     if [[ ${EUID} -eq 0 ]]; then
@@ -319,6 +341,15 @@ _welcome_banner() {
         done
     fi
 
+    local -a k8s_lines=()
+    if [[ -n $k8s_node_name ]]; then
+        k8s_lines+=("${BOLD}${ACCENT}K8s Node:${RESET} ${GRAY}${k8s_node_name} (${k8s_node_role})${RESET}")
+        n=${#k8s_pods[@]}
+        for (( k=0; k<n; k++ )); do
+            k8s_lines+=("${GRAY}$(_branch "$k" "$n") ${k8s_pods[$k]}${RESET}")
+        done
+    fi
+
     # open listening ports - minimal `ss -tulnp` equivalent (process name only
     # visible as root; deduped across the dual-stack v4/v6 listener for one port)
     local -a ports=()
@@ -430,46 +461,83 @@ _welcome_banner() {
     fi
     echo
 
-    # --- Sessions / IP / Docker: side by side (like before) when they fit,
-    # otherwise stacked full-width so they don't collide on narrow terminals.
-    # Docker only gets a column at all when the docker CLI is actually present
-    # (docker_lines stays empty otherwise) - no header, no reserved gap. ---
-    local w_s=0 w_i=0 w_d=0 cell="" clen2=0 has_docker=0
-    for cell in "${sessions_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_s )) && w_s=$clen2; done
-    for cell in "${ip_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_i )) && w_i=$clen2; done
+    # --- Sessions / IP / Docker / K8s Node: side by side (like before) when
+    # they fit, otherwise stacked full-width so they don't collide on narrow
+    # terminals. Sessions and IP always show; Docker and K8s each only claim
+    # a column when they actually have something to show (docker installed /
+    # this host is a live cluster node) - no header, no reserved gap otherwise. ---
+    local -a col1=() col2=() col3=() col4=()
+    local ncols=2
+    col1=("${sessions_lines[@]}")
+    col2=("${ip_lines[@]}")
     if (( ${#docker_lines[@]} > 0 )); then
-        has_docker=1
-        for cell in "${docker_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_d )) && w_d=$clen2; done
+        col3=("${docker_lines[@]}")
+        ncols=3
     fi
-    local needed_width=$(( w_s + w_i + 2 ))
-    (( has_docker )) && needed_width=$(( needed_width + w_d + 2 ))
+    if (( ${#k8s_lines[@]} > 0 )); then
+        if (( ncols == 3 )); then
+            col4=("${k8s_lines[@]}")
+            ncols=4
+        else
+            col3=("${k8s_lines[@]}")
+            ncols=3
+        fi
+    fi
+
+    local w1=0 w2=0 w3=0 w4=0 cell="" clen2=0
+    for cell in "${col1[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w1 )) && w1=$clen2; done
+    for cell in "${col2[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w2 )) && w2=$clen2; done
+    for cell in "${col3[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w3 )) && w3=$clen2; done
+    for cell in "${col4[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w4 )) && w4=$clen2; done
+    local needed_width=$(( w1 + w2 + 2 ))
+    (( ncols >= 3 )) && needed_width=$(( needed_width + w3 + 2 ))
+    (( ncols >= 4 )) && needed_width=$(( needed_width + w4 + 2 ))
 
     if (( term_width >= needed_width )); then
-        local col_rows=${#sessions_lines[@]}
-        (( ${#ip_lines[@]} > col_rows )) && col_rows=${#ip_lines[@]}
-        (( has_docker && ${#docker_lines[@]} > col_rows )) && col_rows=${#docker_lines[@]}
+        local col_rows=${#col1[@]}
+        (( ${#col2[@]} > col_rows )) && col_rows=${#col2[@]}
+        (( ncols >= 3 && ${#col3[@]} > col_rows )) && col_rows=${#col3[@]}
+        (( ncols >= 4 && ${#col4[@]} > col_rows )) && col_rows=${#col4[@]}
         local r=0 col_pad=0
         for (( r=0; r<col_rows; r++ )); do
-            cell="${sessions_lines[$r]:-}"; clen2=$(_visible_len "$cell"); col_pad=$(( w_s - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
+            cell="${col1[$r]:-}"; clen2=$(_visible_len "$cell"); col_pad=$(( w1 - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
             printf '%s' "$cell"; printf '%*s' "$col_pad" ''
 
-            cell="${ip_lines[$r]:-}"
-            if (( has_docker )); then
-                clen2=$(_visible_len "$cell"); col_pad=$(( w_i - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
+            cell="${col2[$r]:-}"
+            if (( ncols >= 3 )); then
+                clen2=$(_visible_len "$cell"); col_pad=$(( w2 - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
                 printf '%s' "$cell"; printf '%*s' "$col_pad" ''
-                printf '%s\n' "${docker_lines[$r]:-}"
             else
-                printf '%s\n' "$cell"
+                printf '%s' "$cell"
             fi
+
+            if (( ncols >= 3 )); then
+                cell="${col3[$r]:-}"
+                if (( ncols >= 4 )); then
+                    clen2=$(_visible_len "$cell"); col_pad=$(( w3 - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
+                    printf '%s' "$cell"; printf '%*s' "$col_pad" ''
+                else
+                    printf '%s' "$cell"
+                fi
+            fi
+
+            if (( ncols >= 4 )); then
+                printf '%s' "${col4[$r]:-}"
+            fi
+            printf '\n'
         done
     else
         local sec=""
-        for sec in "${sessions_lines[@]}"; do printf '%s\n' "$sec"; done
+        for sec in "${col1[@]}"; do printf '%s\n' "$sec"; done
         echo
-        for sec in "${ip_lines[@]}"; do printf '%s\n' "$sec"; done
-        if (( has_docker )); then
+        for sec in "${col2[@]}"; do printf '%s\n' "$sec"; done
+        if (( ncols >= 3 )); then
             echo
-            for sec in "${docker_lines[@]}"; do printf '%s\n' "$sec"; done
+            for sec in "${col3[@]}"; do printf '%s\n' "$sec"; done
+        fi
+        if (( ncols >= 4 )); then
+            echo
+            for sec in "${col4[@]}"; do printf '%s\n' "$sec"; done
         fi
     fi
     echo
