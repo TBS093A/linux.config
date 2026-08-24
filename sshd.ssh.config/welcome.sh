@@ -14,13 +14,32 @@ _welcome_banner() {
     [[ -n ${ZSH_VERSION:-} ]] && setopt LOCAL_OPTIONS KSH_ARRAYS 2>/dev/null
 
     local RESET=$'\e[0m' BOLD=$'\e[1m' DIM=$'\e[2m'
-    local GREEN=$'\e[32m' RED=$'\e[31m' YELLOW=$'\e[33m'
-    local logo_color
+    local GREEN=$'\e[32m' RED=$'\e[31m' YELLOW=$'\e[33m' GRAY=$'\e[38;5;244m'
+    local title_color ACCENT
     if [[ ${EUID} -eq 0 ]]; then
-        logo_color=$'\e[1;31m'
+        title_color=$RED
+        ACCENT=$'\e[38;5;196m'   # neofetch's RED="196" - exact ascii_colors match for root
     else
-        logo_color=$'\e[1;32m'
+        title_color=$GREEN
+        ACCENT=$'\e[38;5;002m'   # neofetch's GREEN="002" - exact ascii_colors match
     fi
+
+    # Builds one logo line from alternating (color, text) pairs - used for the
+    # 4 lines where neofetch's ascii_colors switches between accent/gray
+    # mid-line (the shaded "QQQ/WWW" block), captured 1:1 from running the
+    # actual upstream neofetch with this repo's original --ascii_colors flags.
+    _dual() {
+        local out=""
+        while (( $# >= 2 )); do
+            out+="${1}${BOLD}${2}"
+            shift 2
+        done
+        printf '%s%s' "$out" "$RESET"
+    }
+    _visible_len() {
+        local stripped; stripped=$(printf '%s' "$1" | sed -E 's/\x1b\[[0-9;]*m//g')
+        printf '%s' "${#stripped}"
+    }
 
     local -a logo=(
         '                __.;=====;.__'
@@ -30,10 +49,10 @@ _welcome_banner() {
         '       _vi,    `            --+=++++:'
         '      .uvnvi.       _._       -==+==+.'
         '     .vvnvnI`    .;==|==;.     :|=||=|.'
-        '+QmQQmpvvnv; _yYsyQQWUUQQQm #QmQ#:QQQWUV$QQm.'
-        ' -QQWQWpvvowZ?.wQQQE==<QWWQ/QWQW.QQWW(: jQWQE'
-        '  -$QQQQmmU`  jQQQ@+=<QWQQ)mQQQ.mQQQC+;jWQQ@`'
-        '   -$WQ8YnI:   QWQQwgQQWV`mWQQ.jQWQQgyyWW@!'
+        "$(_dual "$GRAY" '+QmQQm' "$ACCENT" 'pvvnv; ' "$GRAY" '_yYsyQQWUUQQQm #QmQ#' "$ACCENT" ':' "$GRAY" 'QQQWUV$QQm.')"
+        "$(_dual "$GRAY" ' -QQWQW' "$ACCENT" 'pvvo' "$GRAY" 'wZ?.wQQQE' "$ACCENT" '==<' "$GRAY" 'QWWQ/QWQW.QQWW' "$ACCENT" '(: ' "$GRAY" 'jQWQE')"
+        "$(_dual "$GRAY" "  -\$QQQQmmU'  jQQQ@" "$ACCENT" '+=<' "$GRAY" 'QWQQ)mQQQ.mQQQC' "$ACCENT" '+;' "$GRAY" "jWQQ@'")"
+        "$(_dual "$GRAY" '   -$WQ8Y' "$ACCENT" 'nI:   ' "$GRAY" 'QWQQwgQQWV' "$ACCENT" '`' "$GRAY" 'mWQQ.jQWQQgyyWW@!')"
         '     -1vvnvv.     `~+++`        ++|+++'
         '      +vnvnnv,                 `-|==='
         '       +vnvnvns.           .      :=-'
@@ -111,7 +130,7 @@ _welcome_banner() {
 
     # --- right-hand info block (top-aligned against the logo, like neofetch) ---
     local -a info=(
-        "${BOLD}${GREEN}${user_name}${RESET}@${BOLD}${GREEN}${hostname}${RESET}"
+        "${BOLD}${title_color}${user_name}${RESET}${GRAY}@${hostname}${RESET}"
         "$(printf '%.0s-' $(seq 1 $(( ${#user_name}+${#hostname}+1 ))) )"
         "${BOLD}OS:${RESET}       ${os_pretty}"
         "${BOLD}Kernel:${RESET}   ${kernel}"
@@ -125,13 +144,21 @@ _welcome_banner() {
     )
 
     # --- render logo + info side by side ---
-    local i line plain_len pad
+    # Lines 7-10 (the dense QQQ/WWW block) are pre-colored by _dual above;
+    # everything else gets a flat accent-color wrap, matching real neofetch.
+    local i line rendered plain_len pad
     for (( i=0; i<${#logo[@]}; i++ )); do
         line="${logo[$i]}"
-        plain_len=${#line}
+        if (( i >= 7 && i <= 10 )); then
+            rendered="$line"
+            plain_len=$(_visible_len "$line")
+        else
+            rendered="${BOLD}${ACCENT}${line}${RESET}"
+            plain_len=${#line}
+        fi
         pad=$(( logo_width - plain_len ))
         (( pad < 1 )) && pad=1
-        printf '%s%s%s' "$logo_color" "$line" "$RESET"
+        printf '%s' "$rendered"
         printf '%*s' "$pad" ''
         if (( i < ${#info[@]} )); then
             printf '%s' "${info[$i]}"
