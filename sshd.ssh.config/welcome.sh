@@ -431,34 +431,43 @@ _welcome_banner() {
     echo
 
     # --- Sessions / IP / Docker: side by side (like before) when they fit,
-    # otherwise stacked full-width so they don't collide on narrow terminals ---
-    local w_s=0 w_i=0 w_d=0 cell="" clen2=0
+    # otherwise stacked full-width so they don't collide on narrow terminals.
+    # Docker only gets a column at all when the docker CLI is actually present
+    # (docker_lines stays empty otherwise) - no header, no reserved gap. ---
+    local w_s=0 w_i=0 w_d=0 cell="" clen2=0 has_docker=0
     for cell in "${sessions_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_s )) && w_s=$clen2; done
     for cell in "${ip_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_i )) && w_i=$clen2; done
-    for cell in "${docker_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_d )) && w_d=$clen2; done
-    local needed_width=$(( w_s + w_i + w_d + 4 ))
+    if (( ${#docker_lines[@]} > 0 )); then
+        has_docker=1
+        for cell in "${docker_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_d )) && w_d=$clen2; done
+    fi
+    local needed_width=$(( w_s + w_i + 2 ))
+    (( has_docker )) && needed_width=$(( needed_width + w_d + 2 ))
 
     if (( term_width >= needed_width )); then
         local col_rows=${#sessions_lines[@]}
         (( ${#ip_lines[@]} > col_rows )) && col_rows=${#ip_lines[@]}
-        (( ${#docker_lines[@]} > col_rows )) && col_rows=${#docker_lines[@]}
+        (( has_docker && ${#docker_lines[@]} > col_rows )) && col_rows=${#docker_lines[@]}
         local r=0 col_pad=0
         for (( r=0; r<col_rows; r++ )); do
             cell="${sessions_lines[$r]:-}"; clen2=$(_visible_len "$cell"); col_pad=$(( w_s - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
             printf '%s' "$cell"; printf '%*s' "$col_pad" ''
 
-            cell="${ip_lines[$r]:-}"; clen2=$(_visible_len "$cell"); col_pad=$(( w_i - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
-            printf '%s' "$cell"; printf '%*s' "$col_pad" ''
-
-            cell="${docker_lines[$r]:-}"
-            printf '%s\n' "$cell"
+            cell="${ip_lines[$r]:-}"
+            if (( has_docker )); then
+                clen2=$(_visible_len "$cell"); col_pad=$(( w_i - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
+                printf '%s' "$cell"; printf '%*s' "$col_pad" ''
+                printf '%s\n' "${docker_lines[$r]:-}"
+            else
+                printf '%s\n' "$cell"
+            fi
         done
     else
         local sec=""
         for sec in "${sessions_lines[@]}"; do printf '%s\n' "$sec"; done
         echo
         for sec in "${ip_lines[@]}"; do printf '%s\n' "$sec"; done
-        if (( ${#docker_lines[@]} > 0 )); then
+        if (( has_docker )); then
             echo
             for sec in "${docker_lines[@]}"; do printf '%s\n' "$sec"; done
         fi
