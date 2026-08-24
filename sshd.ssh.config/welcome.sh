@@ -15,7 +15,7 @@ _welcome_banner() {
 
     local RESET=$'\e[0m' BOLD=$'\e[1m' DIM=$'\e[2m'
     local GREEN=$'\e[32m' RED=$'\e[31m' YELLOW=$'\e[33m' GRAY=$'\e[38;5;244m'
-    local title_color ACCENT
+    local title_color="" ACCENT=""
     if [[ ${EUID} -eq 0 ]]; then
         title_color=$RED
         ACCENT=$'\e[38;5;196m'   # neofetch's RED="196" - exact ascii_colors match for root
@@ -77,37 +77,114 @@ _welcome_banner() {
     local up_days=$(( up_secs/86400 )) up_hours=$(( (up_secs%86400)/3600 )) up_mins=$(( (up_secs%3600)/60 ))
     local uptime_str="${up_days}d ${up_hours}h ${up_mins}m"
 
-    # CPU load: two /proc/stat samples ~150ms apart, htop-style instantaneous %
-    local _cpu u1 n1 s1 i1 w1 irq1 sirq1
-    read -r _cpu u1 n1 s1 i1 w1 irq1 sirq1 _ < /proc/stat
+    # CPU load: two full /proc/stat samples ~150ms apart, htop-style instantaneous
+    # % for both the aggregate line and each individual core (used below for the
+    # per-core tree breakdown).
+    local stat1="" stat2=""
+    stat1=$(cat /proc/stat)
     sleep 0.15
-    local u2 n2 s2 i2 w2 irq2 sirq2
-    read -r _cpu u2 n2 s2 i2 w2 irq2 sirq2 _ < /proc/stat
-    local idle1=$((i1+w1)) idle2=$((i2+w2))
-    local total1=$((u1+n1+s1+i1+w1+irq1+sirq1)) total2=$((u2+n2+s2+i2+w2+irq2+sirq2))
-    local totald=$((total2-total1)) idled=$((idle2-idle1))
-    local cpu_pct=0
-    (( totald > 0 )) && cpu_pct=$(( (100*(totald-idled))/totald ))
+    stat2=$(cat /proc/stat)
+
+    _cpu_pct_from_fields() {
+        # args: u1 n1 s1 i1 w1 irq1 sirq1 u2 n2 s2 i2 w2 irq2 sirq2
+        local u1=$1 n1=$2 s1=$3 i1=$4 w1=$5 irq1=$6 sirq1=$7
+        local u2=$8 n2=$9 s2=${10} i2=${11} w2=${12} irq2=${13} sirq2=${14}
+        local idle1=$((i1+w1)) idle2=$((i2+w2))
+        local total1=$((u1+n1+s1+i1+w1+irq1+sirq1)) total2=$((u2+n2+s2+i2+w2+irq2+sirq2))
+        local totald=$((total2-total1)) idled=$((idle2-idle1))
+        local pct=0
+        (( totald > 0 )) && pct=$(( (100*(totald-idled))/totald ))
+        printf '%s' "$pct"
+    }
+
+    local _name="" u1=0 n1=0 s1=0 i1=0 w1=0 irq1=0 sirq1=0
+    read -r _name u1 n1 s1 i1 w1 irq1 sirq1 _ <<< "$(awk '/^cpu /{print;exit}' <<< "$stat1")"
+    local u2=0 n2=0 s2=0 i2=0 w2=0 irq2=0 sirq2=0
+    read -r _name u2 n2 s2 i2 w2 irq2 sirq2 _ <<< "$(awk '/^cpu /{print;exit}' <<< "$stat2")"
+    local cpu_pct; cpu_pct=$(_cpu_pct_from_fields "$u1" "$n1" "$s1" "$i1" "$w1" "$irq1" "$sirq1" "$u2" "$n2" "$s2" "$i2" "$w2" "$irq2" "$sirq2")
     local cpu_cores; cpu_cores=$(nproc)
 
-    local mem_total mem_used
+    local -a core_pct=()
+    while read -r _name u1 n1 s1 i1 w1 irq1 sirq1 _; do
+        [[ $_name =~ ^cpu[0-9]+$ ]] || continue
+        read -r _ u2 n2 s2 i2 w2 irq2 sirq2 _ <<< "$(awk -v c="$_name" '$1==c{print;exit}' <<< "$stat2")"
+        core_pct+=("$(_cpu_pct_from_fields "$u1" "$n1" "$s1" "$i1" "$w1" "$irq1" "$sirq1" "$u2" "$n2" "$s2" "$i2" "$w2" "$irq2" "$sirq2")")
+    done <<< "$stat1"
+
+    # load average, colored per-window relative to core count (same thresholds as the bars)
+    local load1="" load5="" load15=""; read -r load1 load5 load15 _ < /proc/loadavg
+    _load_color() {
+        local ratio; ratio=$(awk -v l="$1" -v c="$cpu_cores" 'BEGIN{printf "%d", (l/c)*100}')
+        if   (( ratio >= 100 )); then printf '%s' "$RED"
+        elif (( ratio >= 70 ));  then printf '%s' "$YELLOW"
+        else printf '%s' "$GREEN"
+        fi
+    }
+    local load1_color; load1_color=$(_load_color "$load1")
+    local load5_color; load5_color=$(_load_color "$load5")
+    local load15_color; load15_color=$(_load_color "$load15")
+
+    # pending xbps updates - dry run against locally cached repodata (no network sync)
+    local update_count; update_count=$(xbps-install -un 2>/dev/null | grep -c .)
+    local update_color=$GREEN
+    (( update_count > 0 )) && update_color=$YELLOW
+
+    # active logged-in sessions
+    local -a sessions=()
+    while IFS= read -r wline; do
+        [[ -n $wline ]] && sessions+=("$wline")
+    done < <(who 2>/dev/null)
+
+    # LAN IPv4 addresses (skip docker/veth bridges and link-local addresses)
+    local -a ips=()
+    while IFS= read -r iline; do
+        local iface="" addr=""
+        iface=$(awk '{print $2}' <<< "$iline")
+        addr=$(awk '{print $4}' <<< "$iline")
+        addr=${addr%%/*}
+        case "$iface" in docker*|veth*|br-*) continue ;; esac
+        [[ $addr == 169.254.* ]] && continue
+        ips+=("${iface}: ${addr}")
+    done < <(ip -4 -o addr show scope global 2>/dev/null)
+
+    # running docker containers (works without sudo only if the user is in the docker group)
+    local -a containers=()
+    if command -v docker >/dev/null 2>&1; then
+        while IFS= read -r cline; do
+            [[ -n $cline ]] && containers+=("$cline")
+        done < <(docker ps --format '{{.Names}}' 2>/dev/null)
+    fi
+
+    # runit service health - only meaningful (and readable) as root
+    local -a bad_services=()
+    if [[ ${EUID} -eq 0 ]]; then
+        local svc="" svc_name="" svc_status=""
+        for svc in /var/service/*; do
+            [[ -e $svc ]] || continue
+            svc_name=$(basename "$svc")
+            svc_status=$(sv status "$svc" 2>/dev/null)
+            [[ $svc_status == run:* ]] || bad_services+=("$svc_name")
+        done
+    fi
+
+    local mem_total=0 mem_used=0
     read -r mem_total mem_used < <(free -b | awk '/^Mem:/{print $2, $3}')
     local ram_pct=0
     (( mem_total > 0 )) && ram_pct=$(( 100*mem_used/mem_total ))
-    local ram_used_h ram_total_h
+    local ram_used_h="" ram_total_h=""
     ram_used_h=$(numfmt --to=iec --suffix=B --format="%.1f" "$mem_used")
     ram_total_h=$(numfmt --to=iec --suffix=B --format="%.1f" "$mem_total")
 
-    local disk_total disk_used disk_pct_raw
+    local disk_total=0 disk_used=0 disk_pct_raw=""
     read -r disk_total disk_used disk_pct_raw < <(df -B1 --output=size,used,pcent / | awk 'NR==2{print $1, $2, $3}')
     local disk_pct=${disk_pct_raw%\%}
-    local disk_used_h disk_total_h
+    local disk_used_h="" disk_total_h=""
     disk_used_h=$(numfmt --to=iec --suffix=B --format="%.1f" "$disk_used")
     disk_total_h=$(numfmt --to=iec --suffix=B --format="%.1f" "$disk_total")
 
     # --- bar meter, htop style: [colored blocks............] NN% ---
     _meter() {
-        local pct=$1 width=$2 color reset=$RESET
+        local pct=$1 width=$2 color="" reset=$RESET
         local filled=$(( pct*width/100 ))
         (( filled > width )) && filled=$width
         local empty=$(( width-filled ))
@@ -118,7 +195,7 @@ _welcome_banner() {
         local filled_str="" empty_str=""
         (( filled > 0 )) && filled_str=$(printf '%0.s█' $(seq 1 "$filled"))
         (( empty > 0 )) && empty_str=$(printf '%0.s░' $(seq 1 "$empty"))
-        printf '[%s%s%s%s%s%s] %3d%%' "$color" "$filled_str" "$reset" "$DIM" "$empty_str" "$reset" "$pct"
+        printf '[%s%s%s%s%s%s] %s%3d%%%s' "$color" "$filled_str" "$reset" "$DIM" "$empty_str" "$reset" "$color" "$pct" "$reset"
     }
 
     local bar_width=20
@@ -128,33 +205,117 @@ _welcome_banner() {
 
     local user_name; user_name=$(id -un)
 
+    # separator dashes alternate gray/accent, one at a time
+    local sep_len=$(( ${#user_name}+${#hostname}+1 )) sep="" j=0
+    for (( j=0; j<sep_len; j++ )); do
+        if (( j % 2 == 0 )); then
+            sep+="${GRAY}-"
+        else
+            sep+="${ACCENT}-"
+        fi
+    done
+    sep+="$RESET"
+
+    # tree branch glyph: "├─" for every item but the last, "└─" for the last
+    _branch() {
+        local idx=$1 count=$2
+        if (( idx == count-1 )); then printf '└─'; else printf '├─'; fi
+    }
+
     # --- right-hand info block (top-aligned against the logo, like neofetch) ---
+    # label = accent (root/user color), value = dark gray; CPU/RAM/DISK meters
+    # keep their own threshold color (green/yellow/red) on the percentage.
     local -a info=(
         "${BOLD}${title_color}${user_name}${RESET}${GRAY}@${hostname}${RESET}"
-        "$(printf '%.0s-' $(seq 1 $(( ${#user_name}+${#hostname}+1 ))) )"
-        "${BOLD}OS:${RESET}       ${os_pretty}"
-        "${BOLD}Kernel:${RESET}   ${kernel}"
-        "${BOLD}Uptime:${RESET}   ${uptime_str}"
-        "${BOLD}Packages:${RESET} ${pkg_count} (xbps)"
-        "${BOLD}Shell:${RESET}    ${shell_name}"
+        "$sep"
+        "${BOLD}${ACCENT}OS:${RESET}       ${GRAY}${os_pretty}${RESET}"
+        "${BOLD}${ACCENT}Kernel:${RESET}   ${GRAY}${kernel}${RESET}"
+        "${BOLD}${ACCENT}Uptime:${RESET}   ${GRAY}${uptime_str}${RESET}"
+        "${BOLD}${ACCENT}Packages:${RESET} ${GRAY}${pkg_count} (xbps)${RESET}"
+        "${BOLD}${ACCENT}Updates:${RESET}  ${update_color}${update_count}${RESET}"
+        "${BOLD}${ACCENT}Shell:${RESET}    ${GRAY}${shell_name}${RESET}"
         ""
-        "${BOLD}CPU ${RESET} ${cpu_bar} (${cpu_cores} cores)"
-        "${BOLD}RAM ${RESET} ${ram_bar} (${ram_used_h}/${ram_total_h})"
-        "${BOLD}DISK${RESET} ${disk_bar} (${disk_used_h}/${disk_total_h})"
+        "${BOLD}${ACCENT}CPU ${RESET} ${cpu_bar} ${GRAY}(${cpu_cores} cores)${RESET}"
+        "${BOLD}${ACCENT}RAM ${RESET} ${ram_bar} ${GRAY}(${ram_used_h}/${ram_total_h})${RESET}"
+        "${BOLD}${ACCENT}DISK${RESET} ${disk_bar} ${GRAY}(${disk_used_h}/${disk_total_h})${RESET}"
+        ""
+        "${BOLD}${ACCENT}Load${RESET} ${GRAY}1m:${RESET}${load1_color}${load1}${RESET} ${GRAY}5m:${RESET}${load5_color}${load5}${RESET} ${GRAY}15m:${RESET}${load15_color}${load15}${RESET}"
     )
+
+    local n=0 k=0
+    n=${#core_pct[@]}
+    for (( k=0; k<n; k++ )); do
+        info+=("${GRAY}$(_branch "$k" "$n") core${k}${RESET} $(_meter "${core_pct[$k]}" 10)")
+    done
+
+    info+=("")
+    info+=("${BOLD}${ACCENT}Sesje:${RESET} ${GRAY}${#sessions[@]} aktywnych${RESET}")
+    n=${#sessions[@]}
+    for (( k=0; k<n; k++ )); do
+        local wuser="" wtty="" wdate="" wtime="" wfrom=""
+        read -r wuser wtty wdate wtime wfrom <<< "${sessions[$k]}"
+        info+=("${GRAY}$(_branch "$k" "$n") ${wuser}@${wtty} ${wfrom}${RESET}")
+    done
+
+    if (( ${#ips[@]} == 1 )); then
+        info+=("${BOLD}${ACCENT}IP:${RESET}       ${GRAY}${ips[0]}${RESET}")
+    elif (( ${#ips[@]} > 1 )); then
+        info+=("${BOLD}${ACCENT}IP:${RESET}")
+        n=${#ips[@]}
+        for (( k=0; k<n; k++ )); do
+            info+=("${GRAY}$(_branch "$k" "$n") ${ips[$k]}${RESET}")
+        done
+    fi
+
+    if command -v docker >/dev/null 2>&1; then
+        if (( ${#containers[@]} == 1 )); then
+            info+=("${BOLD}${ACCENT}Docker:${RESET}   ${GRAY}${containers[0]}${RESET}")
+        elif (( ${#containers[@]} > 1 )); then
+            info+=("${BOLD}${ACCENT}Docker:${RESET}   ${GRAY}${#containers[@]} kontenerów${RESET}")
+            n=${#containers[@]}
+            for (( k=0; k<n; k++ )); do
+                info+=("${GRAY}$(_branch "$k" "$n") ${containers[$k]}${RESET}")
+            done
+        else
+            info+=("${BOLD}${ACCENT}Docker:${RESET}   ${GRAY}brak kontenerów${RESET}")
+        fi
+    fi
+
+    if [[ ${EUID} -eq 0 ]]; then
+        if (( ${#bad_services[@]} > 0 )); then
+            info+=("")
+            info+=("${BOLD}${RED}Usługi NIE działają:${RESET}")
+            n=${#bad_services[@]}
+            for (( k=0; k<n; k++ )); do
+                info+=("${RED}$(_branch "$k" "$n") ${bad_services[$k]}${RESET}")
+            done
+        else
+            info+=("${BOLD}${ACCENT}Usługi:${RESET}   ${GREEN}wszystkie działają${RESET}")
+        fi
+    fi
 
     # --- render logo + info side by side ---
     # Lines 7-10 (the dense QQQ/WWW block) are pre-colored by _dual above;
     # everything else gets a flat accent-color wrap, matching real neofetch.
-    local i line rendered plain_len pad
-    for (( i=0; i<${#logo[@]}; i++ )); do
-        line="${logo[$i]}"
-        if (( i >= 7 && i <= 10 )); then
-            rendered="$line"
-            plain_len=$(_visible_len "$line")
+    # The info column now often runs longer than the 18-line logo (updates,
+    # sessions, per-core/IP/docker branches), so the loop covers whichever is longer.
+    local max_lines=${#logo[@]}
+    (( ${#info[@]} > max_lines )) && max_lines=${#info[@]}
+
+    local i=0 line="" rendered="" plain_len=0 pad=0
+    for (( i=0; i<max_lines; i++ )); do
+        if (( i < ${#logo[@]} )); then
+            line="${logo[$i]}"
+            if (( i >= 7 && i <= 10 )); then
+                rendered="$line"
+                plain_len=$(_visible_len "$line")
+            else
+                rendered="${BOLD}${ACCENT}${line}${RESET}"
+                plain_len=${#line}
+            fi
         else
-            rendered="${BOLD}${ACCENT}${line}${RESET}"
-            plain_len=${#line}
+            rendered=""
+            plain_len=0
         fi
         pad=$(( logo_width - plain_len ))
         (( pad < 1 )) && pad=1
@@ -166,7 +327,18 @@ _welcome_banner() {
         printf '\n'
     done
     echo
+
+    if (( disk_pct >= 90 )); then
+        printf '%s%s⚠ UWAGA: dysk / zapełniony w %s%%!%s\n\n' "$BOLD" "$RED" "$disk_pct" "$RESET"
+    fi
+
+    local year; year=$(date +%Y)
+    printf '%s%s%s\n' "$GRAY" "────────────────────────────────────────────────────────" "$RESET"
+    printf '%s%s© %s TBS093A%s %s· %s · linux.config dotfiles%s\n' "$BOLD" "$ACCENT" "$year" "$RESET" "$GRAY" "$hostname" "$RESET"
 }
 
 _welcome_banner
-unset -f _welcome_banner
+# bash (unlike a real nested scope) defines helper functions declared inside
+# _welcome_banner as GLOBAL functions the moment it runs - unset every one of
+# them here or they leak into the interactive shell on every login.
+unset -f _welcome_banner _dual _visible_len _meter _cpu_pct_from_fields _load_color _branch
