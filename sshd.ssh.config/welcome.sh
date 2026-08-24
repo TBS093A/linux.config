@@ -238,67 +238,63 @@ _welcome_banner() {
         "${BOLD}${ACCENT}CPU ${RESET} ${cpu_bar} ${GRAY}(${cpu_cores} cores)${RESET}"
         "${BOLD}${ACCENT}RAM ${RESET} ${ram_bar} ${GRAY}(${ram_used_h}/${ram_total_h})${RESET}"
         "${BOLD}${ACCENT}DISK${RESET} ${disk_bar} ${GRAY}(${disk_used_h}/${disk_total_h})${RESET}"
-        ""
-        "${BOLD}${ACCENT}Load${RESET} ${GRAY}1m:${RESET}${load1_color}${load1}${RESET} ${GRAY}5m:${RESET}${load5_color}${load5}${RESET} ${GRAY}15m:${RESET}${load15_color}${load15}${RESET}"
     )
 
     local n=0 k=0
-    n=${#core_pct[@]}
-    for (( k=0; k<n; k++ )); do
-        info+=("${GRAY}$(_branch "$k" "$n") core${k}${RESET} $(_meter "${core_pct[$k]}" 10)")
-    done
-
-    info+=("")
-    info+=("${BOLD}${ACCENT}Sesje:${RESET} ${GRAY}${#sessions[@]} aktywnych${RESET}")
-    n=${#sessions[@]}
-    for (( k=0; k<n; k++ )); do
-        local wuser="" wtty="" wdate="" wtime="" wfrom=""
-        read -r wuser wtty wdate wtime wfrom <<< "${sessions[$k]}"
-        info+=("${GRAY}$(_branch "$k" "$n") ${wuser}@${wtty} ${wfrom}${RESET}")
-    done
-
-    if (( ${#ips[@]} == 1 )); then
-        info+=("${BOLD}${ACCENT}IP:${RESET}       ${GRAY}${ips[0]}${RESET}")
-    elif (( ${#ips[@]} > 1 )); then
-        info+=("${BOLD}${ACCENT}IP:${RESET}")
-        n=${#ips[@]}
-        for (( k=0; k<n; k++ )); do
-            info+=("${GRAY}$(_branch "$k" "$n") ${ips[$k]}${RESET}")
-        done
-    fi
-
-    if command -v docker >/dev/null 2>&1; then
-        if (( ${#containers[@]} == 1 )); then
-            info+=("${BOLD}${ACCENT}Docker:${RESET}   ${GRAY}${containers[0]}${RESET}")
-        elif (( ${#containers[@]} > 1 )); then
-            info+=("${BOLD}${ACCENT}Docker:${RESET}   ${GRAY}${#containers[@]} kontenerów${RESET}")
-            n=${#containers[@]}
-            for (( k=0; k<n; k++ )); do
-                info+=("${GRAY}$(_branch "$k" "$n") ${containers[$k]}${RESET}")
-            done
-        else
-            info+=("${BOLD}${ACCENT}Docker:${RESET}   ${GRAY}brak kontenerów${RESET}")
-        fi
-    fi
 
     if [[ ${EUID} -eq 0 ]]; then
+        info+=("")
         if (( ${#bad_services[@]} > 0 )); then
-            info+=("")
-            info+=("${BOLD}${RED}Usługi NIE działają:${RESET}")
+            info+=("${BOLD}${RED}Services DOWN:${RESET}")
             n=${#bad_services[@]}
             for (( k=0; k<n; k++ )); do
                 info+=("${RED}$(_branch "$k" "$n") ${bad_services[$k]}${RESET}")
             done
         else
-            info+=("${BOLD}${ACCENT}Usługi:${RESET}   ${GREEN}wszystkie działają${RESET}")
+            info+=("${BOLD}${ACCENT}Services:${RESET} ${GREEN}all running${RESET}")
         fi
+    fi
+
+    # --- Load / Sessions / IP / Docker: printed full-width in columns below
+    # the logo instead of squeezed into the narrow side-by-side info column ---
+    local -a load_col=() sessions_col=() ip_col=() docker_col=()
+
+    load_col+=("${BOLD}${ACCENT}Load${RESET}")
+    load_col+=("${GRAY}1m ${RESET} ${load1_color}${load1}${RESET}")
+    load_col+=("${GRAY}5m ${RESET} ${load5_color}${load5}${RESET}")
+    load_col+=("${GRAY}15m${RESET} ${load15_color}${load15}${RESET}")
+    n=${#core_pct[@]}
+    for (( k=0; k<n; k++ )); do
+        load_col+=("${GRAY}$(_branch "$k" "$n") core${k} $(_meter "${core_pct[$k]}" 8)${RESET}")
+    done
+
+    sessions_col+=("${BOLD}${ACCENT}Sessions:${RESET} ${GRAY}${#sessions[@]}${RESET}")
+    n=${#sessions[@]}
+    for (( k=0; k<n; k++ )); do
+        local wuser="" wtty="" wdate="" wtime="" wfrom=""
+        read -r wuser wtty wdate wtime wfrom <<< "${sessions[$k]}"
+        sessions_col+=("${GRAY}$(_branch "$k" "$n") ${wuser}@${wtty}${RESET}")
+    done
+
+    ip_col+=("${BOLD}${ACCENT}IP${RESET}")
+    n=${#ips[@]}
+    for (( k=0; k<n; k++ )); do
+        ip_col+=("${GRAY}$(_branch "$k" "$n") ${ips[$k]}${RESET}")
+    done
+
+    if command -v docker >/dev/null 2>&1; then
+        docker_col+=("${BOLD}${ACCENT}Docker:${RESET} ${GRAY}${#containers[@]}${RESET}")
+        n=${#containers[@]}
+        for (( k=0; k<n; k++ )); do
+            docker_col+=("${GRAY}$(_branch "$k" "$n") ${containers[$k]}${RESET}")
+        done
     fi
 
     # --- render logo + info side by side ---
     # Lines 7-10 (the dense QQQ/WWW block) are pre-colored by _dual above;
     # everything else gets a flat accent-color wrap, matching real neofetch.
-    # The info column now often runs longer than the 18-line logo (updates,
-    # sessions, per-core/IP/docker branches), so the loop covers whichever is longer.
+    # The info column can run longer than the 18-line logo (services block),
+    # so the loop covers whichever is longer.
     local max_lines=${#logo[@]}
     (( ${#info[@]} > max_lines )) && max_lines=${#info[@]}
 
@@ -328,8 +324,36 @@ _welcome_banner() {
     done
     echo
 
+    # --- Load / Sessions / IP / Docker, side by side in columns under the logo ---
+    local w_load=0 w_sessions=0 w_ip=0 w_docker=0 cell="" cell_len=0
+    for cell in "${load_col[@]}"; do cell_len=$(_visible_len "$cell"); (( cell_len > w_load )) && w_load=$cell_len; done
+    for cell in "${sessions_col[@]}"; do cell_len=$(_visible_len "$cell"); (( cell_len > w_sessions )) && w_sessions=$cell_len; done
+    for cell in "${ip_col[@]}"; do cell_len=$(_visible_len "$cell"); (( cell_len > w_ip )) && w_ip=$cell_len; done
+    for cell in "${docker_col[@]}"; do cell_len=$(_visible_len "$cell"); (( cell_len > w_docker )) && w_docker=$cell_len; done
+
+    local col_rows=${#load_col[@]}
+    (( ${#sessions_col[@]} > col_rows )) && col_rows=${#sessions_col[@]}
+    (( ${#ip_col[@]} > col_rows )) && col_rows=${#ip_col[@]}
+    (( ${#docker_col[@]} > col_rows )) && col_rows=${#docker_col[@]}
+
+    local r=0 col_pad=0
+    for (( r=0; r<col_rows; r++ )); do
+        cell="${load_col[$r]:-}"; cell_len=$(_visible_len "$cell"); col_pad=$(( w_load - cell_len + 2 )); (( col_pad < 2 )) && col_pad=2
+        printf '%s' "$cell"; printf '%*s' "$col_pad" ''
+
+        cell="${sessions_col[$r]:-}"; cell_len=$(_visible_len "$cell"); col_pad=$(( w_sessions - cell_len + 2 )); (( col_pad < 2 )) && col_pad=2
+        printf '%s' "$cell"; printf '%*s' "$col_pad" ''
+
+        cell="${ip_col[$r]:-}"; cell_len=$(_visible_len "$cell"); col_pad=$(( w_ip - cell_len + 2 )); (( col_pad < 2 )) && col_pad=2
+        printf '%s' "$cell"; printf '%*s' "$col_pad" ''
+
+        cell="${docker_col[$r]:-}"
+        printf '%s\n' "$cell"
+    done
+    echo
+
     if (( disk_pct >= 90 )); then
-        printf '%s%s⚠ UWAGA: dysk / zapełniony w %s%%!%s\n\n' "$BOLD" "$RED" "$disk_pct" "$RESET"
+        printf '%s%s⚠ WARNING: disk / at %s%% capacity!%s\n\n' "$BOLD" "$RED" "$disk_pct" "$RESET"
     fi
 
     local year; year=$(date +%Y)
