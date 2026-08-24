@@ -24,6 +24,14 @@ _welcome_banner() {
         ACCENT=$'\e[38;5;002m'   # neofetch's GREEN="002" - exact ascii_colors match
     fi
 
+    # terminal width drives the separator length, the CPU-core wrap, and whether
+    # the logo+info can sit side by side at all
+    local term_width; term_width=$(tput cols 2>/dev/null); term_width=${term_width:-80}
+    (( term_width < 20 )) && term_width=80
+    _hline() {
+        printf '%0.s─' $(seq 1 "$1")
+    }
+
     # Builds one logo line from alternating (color, text) pairs - used for the
     # 4 lines where neofetch's ascii_colors switches between accent/gray
     # mid-line (the shaded "QQQ/WWW" block), captured 1:1 from running the
@@ -183,8 +191,10 @@ _welcome_banner() {
     disk_total_h=$(numfmt --to=iec --suffix=B --format="%.1f" "$disk_total")
 
     # --- bar meter, htop style: [colored blocks............] NN% ---
+    # show_pct=0 omits the trailing " NN%" (used where the percentage is
+    # printed separately, e.g. as its own gray branch line under the bar).
     _meter() {
-        local pct=$1 width=$2 color="" reset=$RESET
+        local pct=$1 width=$2 show_pct=${3:-1} color="" reset=$RESET
         local filled=$(( pct*width/100 ))
         (( filled > width )) && filled=$width
         local empty=$(( width-filled ))
@@ -195,13 +205,17 @@ _welcome_banner() {
         local filled_str="" empty_str=""
         (( filled > 0 )) && filled_str=$(printf '%0.s█' $(seq 1 "$filled"))
         (( empty > 0 )) && empty_str=$(printf '%0.s░' $(seq 1 "$empty"))
-        printf '[%s%s%s%s%s%s] %s%3d%%%s' "$color" "$filled_str" "$reset" "$DIM" "$empty_str" "$reset" "$color" "$pct" "$reset"
+        if (( show_pct )); then
+            printf '[%s%s%s%s%s%s] %s%3d%%%s' "$color" "$filled_str" "$reset" "$DIM" "$empty_str" "$reset" "$color" "$pct" "$reset"
+        else
+            printf '[%s%s%s%s%s%s]' "$color" "$filled_str" "$reset" "$DIM" "$empty_str" "$reset"
+        fi
     }
 
     local bar_width=20
-    local cpu_bar; cpu_bar=$(_meter "$cpu_pct" "$bar_width")
-    local ram_bar; ram_bar=$(_meter "$ram_pct" "$bar_width")
-    local disk_bar; disk_bar=$(_meter "$disk_pct" "$bar_width")
+    local cpu_bar; cpu_bar=$(_meter "$cpu_pct" "$bar_width" 0)
+    local ram_bar; ram_bar=$(_meter "$ram_pct" "$bar_width" 0)
+    local disk_bar; disk_bar=$(_meter "$disk_pct" "$bar_width" 0)
 
     local user_name; user_name=$(id -un)
 
@@ -221,6 +235,15 @@ _welcome_banner() {
         local idx=$1 count=$2
         if (( idx == count-1 )); then printf '└─'; else printf '├─'; fi
     }
+    # same red/yellow/green thresholds as _meter, for coloring a percentage
+    # printed on its own (outside the bracket-bar string)
+    _pct_color() {
+        local pct=$1
+        if   (( pct >= 85 )); then printf '%s' "$RED"
+        elif (( pct >= 60 )); then printf '%s' "$YELLOW"
+        else printf '%s' "$GREEN"
+        fi
+    }
 
     # --- right-hand info block (top-aligned against the logo, like neofetch) ---
     # label = accent (root/user color), value = dark gray; CPU/RAM/DISK meters
@@ -235,9 +258,14 @@ _welcome_banner() {
         "${BOLD}${ACCENT}Updates:${RESET}  ${update_color}${update_count}${RESET}"
         "${BOLD}${ACCENT}Shell:${RESET}    ${GRAY}${shell_name}${RESET}"
         ""
-        "${BOLD}${ACCENT}CPU ${RESET} ${cpu_bar} ${GRAY}(${cpu_cores} cores)${RESET}"
-        "${BOLD}${ACCENT}RAM ${RESET} ${ram_bar} ${GRAY}(${ram_used_h}/${ram_total_h})${RESET}"
-        "${BOLD}${ACCENT}DISK${RESET} ${disk_bar} ${GRAY}(${disk_used_h}/${disk_total_h})${RESET}"
+        "${BOLD}${ACCENT}CPU ${RESET} ${cpu_bar}"
+        "${GRAY}$(_branch 0 1) $(_pct_color "$cpu_pct")${cpu_pct}%${RESET} ${GRAY}(${cpu_cores} cores)${RESET}"
+        ""
+        "${BOLD}${ACCENT}RAM ${RESET} ${ram_bar}"
+        "${GRAY}$(_branch 0 1) $(_pct_color "$ram_pct")${ram_pct}%${RESET} ${GRAY}(${ram_used_h}/${ram_total_h})${RESET}"
+        ""
+        "${BOLD}${ACCENT}DISK${RESET} ${disk_bar}"
+        "${GRAY}$(_branch 0 1) $(_pct_color "$disk_pct")${disk_pct}%${RESET} ${GRAY}(${disk_used_h}/${disk_total_h})${RESET}"
     )
 
     local n=0 k=0
@@ -255,113 +283,256 @@ _welcome_banner() {
         fi
     fi
 
-    # --- Load / Sessions / IP / Docker: printed full-width in columns below
-    # the logo instead of squeezed into the narrow side-by-side info column ---
-    local -a load_col=() sessions_col=() ip_col=() docker_col=()
+    # Load average - one line, independent of terminal width
+    local load_line="${BOLD}${ACCENT}Load${RESET} ${GRAY}1m:${RESET} ${load1_color}${load1}${RESET}  ${GRAY}5m:${RESET} ${load5_color}${load5}${RESET}  ${GRAY}15m:${RESET} ${load15_color}${load15}${RESET}"
 
-    load_col+=("${BOLD}${ACCENT}Load${RESET}")
-    load_col+=("${GRAY}1m ${RESET} ${load1_color}${load1}${RESET}")
-    load_col+=("${GRAY}5m ${RESET} ${load5_color}${load5}${RESET}")
-    load_col+=("${GRAY}15m${RESET} ${load15_color}${load15}${RESET}")
+    # CPU cores - horizontal cells, wrapped to however many fit the terminal width
+    local -a core_cells=()
     n=${#core_pct[@]}
     for (( k=0; k<n; k++ )); do
-        load_col+=("${GRAY}$(_branch "$k" "$n") core${k} $(_meter "${core_pct[$k]}" 8)${RESET}")
+        core_cells+=("${GRAY}c${k}${RESET} $(_meter "${core_pct[$k]}" 8)")
     done
 
-    sessions_col+=("${BOLD}${ACCENT}Sessions:${RESET} ${GRAY}${#sessions[@]}${RESET}")
+    # Sessions / IP / Docker / Ports - stacked full-width blocks (old vertical style)
+    local -a sessions_lines=()
+    sessions_lines+=("${BOLD}${ACCENT}Sessions:${RESET} ${GRAY}${#sessions[@]}${RESET}")
     n=${#sessions[@]}
     for (( k=0; k<n; k++ )); do
         local wuser="" wtty="" wdate="" wtime="" wfrom=""
         read -r wuser wtty wdate wtime wfrom <<< "${sessions[$k]}"
-        sessions_col+=("${GRAY}$(_branch "$k" "$n") ${wuser}@${wtty}${RESET}")
+        sessions_lines+=("${GRAY}$(_branch "$k" "$n") ${wuser}@${wtty}${RESET}")
     done
 
-    ip_col+=("${BOLD}${ACCENT}IP${RESET}")
+    local -a ip_lines=()
+    ip_lines+=("${BOLD}${ACCENT}IP${RESET}")
     n=${#ips[@]}
     for (( k=0; k<n; k++ )); do
-        ip_col+=("${GRAY}$(_branch "$k" "$n") ${ips[$k]}${RESET}")
+        ip_lines+=("${GRAY}$(_branch "$k" "$n") ${ips[$k]}${RESET}")
     done
 
+    local -a docker_lines=()
     if command -v docker >/dev/null 2>&1; then
-        docker_col+=("${BOLD}${ACCENT}Docker:${RESET} ${GRAY}${#containers[@]}${RESET}")
+        docker_lines+=("${BOLD}${ACCENT}Docker:${RESET} ${GRAY}${#containers[@]}${RESET}")
         n=${#containers[@]}
         for (( k=0; k<n; k++ )); do
-            docker_col+=("${GRAY}$(_branch "$k" "$n") ${containers[$k]}${RESET}")
+            docker_lines+=("${GRAY}$(_branch "$k" "$n") ${containers[$k]}${RESET}")
         done
     fi
 
+    # open listening ports - minimal `ss -tulnp` equivalent (process name only
+    # visible as root; deduped across the dual-stack v4/v6 listener for one port)
+    local -a ports=()
+    if command -v ss >/dev/null 2>&1; then
+        local -a ports_raw=()
+        local seen_ports=""
+        local pline="" pproto="" paddr="" pport="" pname="" pkey=""
+        while IFS= read -r pline; do
+            [[ -n $pline ]] || continue
+            pproto=$(awk '{print $1}' <<< "$pline")
+            paddr=$(awk '{print $5}' <<< "$pline")
+            pport=${paddr##*:}
+            [[ $pport =~ ^[0-9]+$ ]] || continue
+            pkey="${pproto}:${pport}"
+            case " $seen_ports " in *" $pkey "*) continue ;; esac
+            seen_ports+=" $pkey"
+            pname=$(grep -oE '"[^"]+"' <<< "$pline" | head -1 | tr -d '"')
+            if [[ -n $pname ]]; then
+                ports_raw+=("${pproto} ${pport} (${pname})")
+            else
+                ports_raw+=("${pproto} ${pport}")
+            fi
+        done < <(ss -tulnH 2>/dev/null)
+
+        if (( ${#ports_raw[@]} > 0 )); then
+            local ports_sorted; ports_sorted=$(printf '%s\n' "${ports_raw[@]}" | sort -k2,2n)
+            while IFS= read -r pline; do [[ -n $pline ]] && ports+=("$pline"); done <<< "$ports_sorted"
+        fi
+    fi
+
     echo
-    printf '%s%s%s\n' "$GRAY" "────────────────────────────────────────────────────────" "$RESET"
+    printf '%s%s%s\n' "$GRAY" "$(_hline "$term_width")" "$RESET"
     echo
 
-    # --- render logo + info side by side ---
+    # --- render logo (+ info side by side, if the terminal is wide enough) ---
     # Lines 7-10 (the dense QQQ/WWW block) are pre-colored by _dual above;
     # everything else gets a flat accent-color wrap, matching real neofetch.
-    # The info column can run longer than the 18-line logo (services block),
-    # so the loop covers whichever is longer.
-    local max_lines=${#logo[@]}
-    (( ${#info[@]} > max_lines )) && max_lines=${#info[@]}
+    local side_by_side=1
+    (( term_width < logo_width + 30 )) && side_by_side=0
 
     local i=0 line="" rendered="" plain_len=0 pad=0
-    for (( i=0; i<max_lines; i++ )); do
-        if (( i < ${#logo[@]} )); then
+    if (( side_by_side )); then
+        local max_lines=${#logo[@]}
+        (( ${#info[@]} > max_lines )) && max_lines=${#info[@]}
+        for (( i=0; i<max_lines; i++ )); do
+            if (( i < ${#logo[@]} )); then
+                line="${logo[$i]}"
+                if (( i >= 7 && i <= 10 )); then
+                    rendered="$line"
+                    plain_len=$(_visible_len "$line")
+                else
+                    rendered="${BOLD}${ACCENT}${line}${RESET}"
+                    plain_len=${#line}
+                fi
+            else
+                rendered=""
+                plain_len=0
+            fi
+            pad=$(( logo_width - plain_len ))
+            (( pad < 1 )) && pad=1
+            printf '%s' "$rendered"
+            printf '%*s' "$pad" ''
+            if (( i < ${#info[@]} )); then
+                printf '%s' "${info[$i]}"
+            fi
+            printf '\n'
+        done
+    else
+        # too narrow to fit logo+info side by side without wrap-collisions -
+        # print the logo on its own, then the info block stacked below it
+        for (( i=0; i<${#logo[@]}; i++ )); do
             line="${logo[$i]}"
             if (( i >= 7 && i <= 10 )); then
                 rendered="$line"
-                plain_len=$(_visible_len "$line")
             else
                 rendered="${BOLD}${ACCENT}${line}${RESET}"
-                plain_len=${#line}
             fi
-        else
-            rendered=""
-            plain_len=0
-        fi
-        pad=$(( logo_width - plain_len ))
-        (( pad < 1 )) && pad=1
-        printf '%s' "$rendered"
-        printf '%*s' "$pad" ''
-        if (( i < ${#info[@]} )); then
-            printf '%s' "${info[$i]}"
-        fi
-        printf '\n'
-    done
+            printf '%s\n' "$rendered"
+        done
+        echo
+        for line in "${info[@]}"; do
+            printf '%s\n' "$line"
+        done
+    fi
+    echo
     echo
 
-    # --- Load / Sessions / IP / Docker, side by side in columns under the logo ---
-    local w_load=0 w_sessions=0 w_ip=0 w_docker=0 cell="" cell_len=0
-    for cell in "${load_col[@]}"; do cell_len=$(_visible_len "$cell"); (( cell_len > w_load )) && w_load=$cell_len; done
-    for cell in "${sessions_col[@]}"; do cell_len=$(_visible_len "$cell"); (( cell_len > w_sessions )) && w_sessions=$cell_len; done
-    for cell in "${ip_col[@]}"; do cell_len=$(_visible_len "$cell"); (( cell_len > w_ip )) && w_ip=$cell_len; done
-    for cell in "${docker_col[@]}"; do cell_len=$(_visible_len "$cell"); (( cell_len > w_docker )) && w_docker=$cell_len; done
-
-    local col_rows=${#load_col[@]}
-    (( ${#sessions_col[@]} > col_rows )) && col_rows=${#sessions_col[@]}
-    (( ${#ip_col[@]} > col_rows )) && col_rows=${#ip_col[@]}
-    (( ${#docker_col[@]} > col_rows )) && col_rows=${#docker_col[@]}
-
-    local r=0 col_pad=0
-    for (( r=0; r<col_rows; r++ )); do
-        cell="${load_col[$r]:-}"; cell_len=$(_visible_len "$cell"); col_pad=$(( w_load - cell_len + 2 )); (( col_pad < 2 )) && col_pad=2
-        printf '%s' "$cell"; printf '%*s' "$col_pad" ''
-
-        cell="${sessions_col[$r]:-}"; cell_len=$(_visible_len "$cell"); col_pad=$(( w_sessions - cell_len + 2 )); (( col_pad < 2 )) && col_pad=2
-        printf '%s' "$cell"; printf '%*s' "$col_pad" ''
-
-        cell="${ip_col[$r]:-}"; cell_len=$(_visible_len "$cell"); col_pad=$(( w_ip - cell_len + 2 )); (( col_pad < 2 )) && col_pad=2
-        printf '%s' "$cell"; printf '%*s' "$col_pad" ''
-
-        cell="${docker_col[$r]:-}"
-        printf '%s\n' "$cell"
-    done
+    # --- Load + CPU cores, horizontal, wrapped to the terminal width ---
+    printf '%s\n' "$load_line"
+    if (( ${#core_cells[@]} > 0 )); then
+        local cell_w=0 cl="" clen=0
+        for cl in "${core_cells[@]}"; do
+            clen=$(_visible_len "$cl")
+            (( clen > cell_w )) && cell_w=$clen
+        done
+        local per_row=$(( term_width / (cell_w+2) ))
+        (( per_row < 1 )) && per_row=1
+        local ci=0 core_pad=0
+        for (( ci=0; ci<${#core_cells[@]}; ci++ )); do
+            printf '%s' "${core_cells[$ci]}"
+            if (( (ci+1) % per_row == 0 || ci == ${#core_cells[@]}-1 )); then
+                printf '\n'
+            else
+                clen=$(_visible_len "${core_cells[$ci]}")
+                core_pad=$(( cell_w - clen + 2 ))
+                printf '%*s' "$core_pad" ''
+            fi
+        done
+    fi
     echo
+
+    # --- Sessions / IP / Docker: side by side (like before) when they fit,
+    # otherwise stacked full-width so they don't collide on narrow terminals ---
+    local w_s=0 w_i=0 w_d=0 cell="" clen2=0
+    for cell in "${sessions_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_s )) && w_s=$clen2; done
+    for cell in "${ip_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_i )) && w_i=$clen2; done
+    for cell in "${docker_lines[@]}"; do clen2=$(_visible_len "$cell"); (( clen2 > w_d )) && w_d=$clen2; done
+    local needed_width=$(( w_s + w_i + w_d + 4 ))
+
+    if (( term_width >= needed_width )); then
+        local col_rows=${#sessions_lines[@]}
+        (( ${#ip_lines[@]} > col_rows )) && col_rows=${#ip_lines[@]}
+        (( ${#docker_lines[@]} > col_rows )) && col_rows=${#docker_lines[@]}
+        local r=0 col_pad=0
+        for (( r=0; r<col_rows; r++ )); do
+            cell="${sessions_lines[$r]:-}"; clen2=$(_visible_len "$cell"); col_pad=$(( w_s - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
+            printf '%s' "$cell"; printf '%*s' "$col_pad" ''
+
+            cell="${ip_lines[$r]:-}"; clen2=$(_visible_len "$cell"); col_pad=$(( w_i - clen2 + 2 )); (( col_pad < 2 )) && col_pad=2
+            printf '%s' "$cell"; printf '%*s' "$col_pad" ''
+
+            cell="${docker_lines[$r]:-}"
+            printf '%s\n' "$cell"
+        done
+    else
+        local sec=""
+        for sec in "${sessions_lines[@]}"; do printf '%s\n' "$sec"; done
+        echo
+        for sec in "${ip_lines[@]}"; do printf '%s\n' "$sec"; done
+        if (( ${#docker_lines[@]} > 0 )); then
+            echo
+            for sec in "${docker_lines[@]}"; do printf '%s\n' "$sec"; done
+        fi
+    fi
+    echo
+
+    # --- Ports: like the CPU-core row, but as balanced-length branch columns -
+    # split into as many side-by-side mini vertical lists as fit the terminal
+    # width, each with its own ├─/└─ tree, filled column-first (down then over) ---
+    if (( ${#ports[@]} > 0 )); then
+        printf '%s\n' "${BOLD}${ACCENT}Opened Ports${RESET}"
+        local port_total=${#ports[@]}
+        local port_cell_w=0 pc=""
+        for pc in "${ports[@]}"; do
+            clen2=$(_visible_len "$pc")
+            (( clen2 > port_cell_w )) && port_cell_w=$clen2
+        done
+        local branch_w=3   # "├─ " / "└─ " is 3 visible columns
+        local port_col_w=$(( port_cell_w + branch_w ))
+        local port_cols_target=$(( term_width / (port_col_w+2) ))
+        (( port_cols_target < 1 )) && port_cols_target=1
+        (( port_cols_target > port_total )) && port_cols_target=$port_total
+        local port_rows=$(( (port_total + port_cols_target - 1) / port_cols_target ))
+        local port_cols=$(( (port_total + port_rows - 1) / port_rows ))
+
+        # connector "roof" under the Opened Ports title, tying the mini
+        # branch-lists together into one tree: the first glyph (├) reads as
+        # continuing down/right from the title above, middle glyphs (┬) just
+        # branch down into their column, and the last glyph (┐) turns the
+        # roof down into the last column without over-running its width.
+        if (( port_cols > 1 )); then
+            local connector="" pcol2=0
+            for (( pcol2=0; pcol2<port_cols; pcol2++ )); do
+                if (( pcol2 == 0 )); then
+                    connector+="├"
+                elif (( pcol2 == port_cols-1 )); then
+                    connector+="┐"
+                else
+                    connector+="┬"
+                fi
+                if (( pcol2 < port_cols-1 )); then
+                    connector+="$(printf '%0.s─' $(seq 1 $(( port_col_w+1 )) ))"
+                fi
+            done
+            printf '%s%s%s\n' "$GRAY" "$connector" "$RESET"
+        fi
+
+        local prow=0 pcol=0 pidx=0
+        for (( prow=0; prow<port_rows; prow++ )); do
+            for (( pcol=0; pcol<port_cols; pcol++ )); do
+                pidx=$(( pcol*port_rows + prow ))
+                (( pidx >= port_total )) && break
+                local col_count=$(( port_total - pcol*port_rows ))
+                (( col_count > port_rows )) && col_count=$port_rows
+                local pbr="├─"
+                (( prow == col_count-1 )) && pbr="└─"
+                local pcell="${GRAY}${pbr} ${ports[$pidx]}${RESET}"
+                local pcell_len=""; pcell_len=$(_visible_len "$pcell")
+                printf '%s' "$pcell"
+                if (( pcol < port_cols-1 )); then
+                    printf '%*s' $(( port_col_w - pcell_len + 2 )) ''
+                fi
+            done
+            printf '\n'
+        done
+        echo
+    fi
 
     if (( disk_pct >= 90 )); then
         printf '%s%s⚠ WARNING: disk / at %s%% capacity!%s\n\n' "$BOLD" "$RED" "$disk_pct" "$RESET"
     fi
 
     local year; year=$(date +%Y)
-    printf '%s%s%s\n' "$GRAY" "────────────────────────────────────────────────────────" "$RESET"
+    printf '%s%s%s\n' "$GRAY" "$(_hline "$term_width")" "$RESET"
     printf '%s%s© %s TBS093A%s %s· %s · linux.config dotfiles%s\n' "$BOLD" "$ACCENT" "$year" "$RESET" "$GRAY" "$hostname" "$RESET"
 }
 
@@ -369,4 +540,4 @@ _welcome_banner
 # bash (unlike a real nested scope) defines helper functions declared inside
 # _welcome_banner as GLOBAL functions the moment it runs - unset every one of
 # them here or they leak into the interactive shell on every login.
-unset -f _welcome_banner _dual _visible_len _meter _cpu_pct_from_fields _load_color _branch
+unset -f _welcome_banner _dual _visible_len _meter _cpu_pct_from_fields _load_color _branch _pct_color _hline
