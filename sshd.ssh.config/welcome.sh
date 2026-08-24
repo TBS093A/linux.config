@@ -290,6 +290,10 @@ _welcome_banner() {
         done
     fi
 
+    echo
+    printf '%s%s%s\n' "$GRAY" "────────────────────────────────────────────────────────" "$RESET"
+    echo
+
     # --- render logo + info side by side ---
     # Lines 7-10 (the dense QQQ/WWW block) are pre-colored by _dual above;
     # everything else gets a flat accent-color wrap, matching real neofetch.
