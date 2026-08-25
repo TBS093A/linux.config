@@ -62,6 +62,7 @@ else
 fi
 
 _section "tmux"
+_row "prefix"                 "Ctrl-b - press, RELEASE, then press the key below"
 _row "tmux-session"           "save/restore the current tmux session (script)"
 _row "prefix + | / -"         "split pane vertically / horizontally"
 _row "prefix + h/j/k/l"       "move between panes (vim-style)"
