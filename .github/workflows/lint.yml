@@ -14,12 +14,14 @@ jobs:
           shellcheck --shell=bash \
             install.sh \
             make.symlinks.sh \
+            help-cmd.sh \
             sshd.ssh.config/welcome.sh \
             tmux.config/tmux.session.sh \
             zsh.config/install.zsh.plugins.sh \
             zsh.config/install.zsh.sh \
             bash.config/.bashrc \
-            bash.config/.bash_profile
+            bash.config/.bash_profile \
+            test/welcome-smoke.sh
 
   syntax-check:
     runs-on: ubuntu-latest
@@ -29,9 +31,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y zsh
       - name: bash -n
         run: |
-          for f in install.sh make.symlinks.sh sshd.ssh.config/welcome.sh \
+          for f in install.sh make.symlinks.sh help-cmd.sh sshd.ssh.config/welcome.sh \
                    tmux.config/tmux.session.sh zsh.config/install.zsh.plugins.sh \
-                   zsh.config/install.zsh.sh bash.config/.bashrc bash.config/.bash_profile; do
+                   zsh.config/install.zsh.sh bash.config/.bashrc bash.config/.bash_profile \
+                   test/welcome-smoke.sh; do
             echo "bash -n $f"
             bash -n "$f"
           done
