@@ -95,6 +95,20 @@ guarded), so nothing breaks on a box where one of them failed to install.
 - **eza / bat** - `ls`/`ll`/`la` and `cat` are aliased to `eza`/`bat` when
   installed (icons + git status on listings, syntax highlighting on file
   contents); bat installs as `batcat` on Debian/Ubuntu, handled either way.
+- **Nerd Font (for eza's icons)** - `eza --icons` shows tofu/`?` boxes
+  instead of file-type icons without one. Fonts render client-side, so
+  which box needs the font depends on how you're looking at the
+  terminal:
+  - **Local terminal on this box** (an X/Wayland session) - `install.sh`
+    installs `nerd-fonts-symbols-ttf` on Void (~5MB, symbols only,
+    layered by fontconfig over your existing font - nothing to
+    configure). Not auto-installed on other package managers; grab a
+    font from [nerdfonts.com](https://www.nerdfonts.com/font-downloads)
+    if you're not on Void.
+  - **SSH client** (Windows Terminal, PuTTY, iTerm, ...) - install a
+    Nerd Font (e.g. JetBrainsMono or FiraCode Nerd Font) *there* and
+    set it as the terminal's font. `install.sh` can't reach a remote
+    client, so this step is always manual.
 - **`zsh.config/palette.zsh`** - the gray/accent numbers `welcome.sh` uses,
   in one place, sourced by `.zshrc` and turned into `LS_COLORS` (so
   directories/symlinks/executables in `ls`/`eza` match), `FZF_DEFAULT_OPTS`

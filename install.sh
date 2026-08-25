@@ -97,6 +97,19 @@ if [[ $PROFILE == local ]]; then
 fi
 pkg_install "${BASE_PKGS[@]}"
 
+# Nerd Font symbols (icons eza/fzf/etc. can render) - Void-only: it's the
+# one place this repo knows the exact right package. The full nerd-fonts-ttf
+# bundle is 7+ GB (every patched font family); this is the ~5MB symbols-only
+# variant instead, layered by fontconfig as a fallback over whatever font
+# you already use, so nothing to configure in the terminal. This only does
+# anything for a terminal running ON this box (a local X/Wayland session) -
+# an SSH client (e.g. Windows Terminal, PuTTY) renders with its own local
+# fonts and needs a Nerd Font installed there instead; see the README.
+if [[ $PKG_MGR == xbps-install ]]; then
+    pkg_install nerd-fonts-symbols-ttf
+    command -v fc-cache >/dev/null 2>&1 && fc-cache -f >/dev/null 2>&1
+fi
+
 if [[ $PROFILE == server ]]; then
     install_docker=0
     if [[ -t 0 ]]; then
