@@ -13,15 +13,21 @@ _welcome_banner() {
     # like bash for this function only (LOCAL_OPTIONS auto-reverts it on return).
     [[ -n ${ZSH_VERSION:-} ]] && setopt LOCAL_OPTIONS KSH_ARRAYS 2>/dev/null
 
-    local RESET=$'\e[0m' BOLD=$'\e[1m' DIM=$'\e[2m'
-    local GREEN=$'\e[32m' RED=$'\e[31m' YELLOW=$'\e[33m' GRAY=$'\e[38;5;244m'
+    # honors the NO_COLOR convention (https://no-color.org) - any non-empty
+    # value strips every escape code below, leaving the banner as plain text
+    local RESET="" BOLD="" DIM=""
+    local GREEN="" RED="" YELLOW="" GRAY=""
     local title_color="" ACCENT=""
-    if [[ ${EUID} -eq 0 ]]; then
-        title_color=$RED
-        ACCENT=$'\e[38;5;196m'   # neofetch's RED="196" - exact ascii_colors match for root
-    else
-        title_color=$GREEN
-        ACCENT=$'\e[38;5;002m'   # neofetch's GREEN="002" - exact ascii_colors match
+    if [[ -z ${NO_COLOR:-} ]]; then
+        RESET=$'\e[0m'; BOLD=$'\e[1m'; DIM=$'\e[2m'
+        GREEN=$'\e[32m'; RED=$'\e[31m'; YELLOW=$'\e[33m'; GRAY=$'\e[38;5;244m'
+        if [[ ${EUID} -eq 0 ]]; then
+            title_color=$RED
+            ACCENT=$'\e[38;5;196m'   # neofetch's RED="196" - exact ascii_colors match for root
+        else
+            title_color=$GREEN
+            ACCENT=$'\e[38;5;002m'   # neofetch's GREEN="002" - exact ascii_colors match
+        fi
     fi
 
     # terminal width drives the separator length, the CPU-core wrap, and whether
@@ -95,6 +101,16 @@ _welcome_banner() {
     mkdir -p "$_tmpdir" 2>/dev/null
     local -a _bg_pids=()
 
+    # Opt out of individual sections via WELCOME_SECTIONS (comma-separated
+    # allowlist of: pkg, docker, gpu, k8s, services - default is all). This
+    # skips the background job itself, not just its rendering, so it actually
+    # saves time on slower/headless boxes where e.g. GPU/K8s probing never
+    # applies - not just visual noise reduction.
+    # no-colon expansion: unset -> default (all on); explicitly empty ("") is
+    # left as-is, so WELCOME_SECTIONS= turns every optional section off
+    local _sections=",${WELCOME_SECTIONS-pkg,docker,gpu,k8s,services},"
+    _section_on() { [[ $_sections == *",$1,"* ]]; }
+
     # this function is sourced straight into the caller's interactive login
     # shell, so without this every job backgrounded below would register in
     # *its* job table and print "[1] PID" / "[1]+ Done ..." notifications
@@ -107,10 +123,12 @@ _welcome_banner() {
 
     # installed package count + pending updates (dry run against locally cached
     # repodata - no network sync, but each still walks the whole xbps pkgdb)
-    { xbps-query -l 2>/dev/null | wc -l; } > "$_tmpdir/pkg_count" &
-    _bg_pids+=($!)
-    { xbps-install -un 2>/dev/null | grep -c . || true; } > "$_tmpdir/update_count" &
-    _bg_pids+=($!)
+    if _section_on pkg; then
+        { xbps-query -l 2>/dev/null | wc -l; } > "$_tmpdir/pkg_count" &
+        _bg_pids+=($!)
+        { xbps-install -un 2>/dev/null | grep -c . || true; } > "$_tmpdir/update_count" &
+        _bg_pids+=($!)
+    fi
 
     # CPU load: two full /proc/stat samples ~150ms apart, htop-style instantaneous
     # % for both the aggregate line and each individual core (used below for the
@@ -152,7 +170,7 @@ _welcome_banner() {
     _bg_pids+=($!)
 
     # running docker containers (works without sudo only if the user is in the docker group)
-    if command -v docker >/dev/null 2>&1; then
+    if _section_on docker && command -v docker >/dev/null 2>&1; then
         { docker ps --format '{{.Names}}' 2>/dev/null; } > "$_tmpdir/docker" &
         _bg_pids+=($!)
     fi
@@ -164,32 +182,34 @@ _welcome_banner() {
     # bar is skipped at render time - same as Docker/K8s when not applicable.
     # Each output line is "name, busy_pct, vram_used_MiB, vram_total_MiB";
     # multiple lines mean multiple GPUs, averaged/summed when collected below.
-    {
-        if command -v nvidia-smi >/dev/null 2>&1; then
-            nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total \
-                --format=csv,noheader,nounits 2>/dev/null
-        else
-            local gdev="" gbusy="" gused="" gtotal=""
-            for gdev in /sys/class/drm/card*/device; do
-                [[ -r $gdev/gpu_busy_percent ]] || continue
-                gbusy=$(<"$gdev/gpu_busy_percent")
-                gused=0 gtotal=0
-                if [[ -r $gdev/mem_info_vram_used && -r $gdev/mem_info_vram_total ]]; then
-                    gused=$(( $(<"$gdev/mem_info_vram_used") / 1048576 ))
-                    gtotal=$(( $(<"$gdev/mem_info_vram_total") / 1048576 ))
-                fi
-                printf 'AMD GPU, %s, %s, %s\n' "$gbusy" "$gused" "$gtotal"
-            done
-        fi
-    } > "$_tmpdir/gpu" &
-    _bg_pids+=($!)
+    if _section_on gpu; then
+        {
+            if command -v nvidia-smi >/dev/null 2>&1; then
+                nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total \
+                    --format=csv,noheader,nounits 2>/dev/null
+            else
+                local gdev="" gbusy="" gused="" gtotal=""
+                for gdev in /sys/class/drm/card*/device; do
+                    [[ -r $gdev/gpu_busy_percent ]] || continue
+                    gbusy=$(<"$gdev/gpu_busy_percent")
+                    gused=0 gtotal=0
+                    if [[ -r $gdev/mem_info_vram_used && -r $gdev/mem_info_vram_total ]]; then
+                        gused=$(( $(<"$gdev/mem_info_vram_used") / 1048576 ))
+                        gtotal=$(( $(<"$gdev/mem_info_vram_total") / 1048576 ))
+                    fi
+                    printf 'AMD GPU, %s, %s, %s\n' "$gbusy" "$gused" "$gtotal"
+                done
+            fi
+        } > "$_tmpdir/gpu" &
+        _bg_pids+=($!)
+    fi
 
     # Kubernetes node info - only shown if this host actually registers as a
     # node in a reachable cluster. kubectl being installed proves nothing (it
     # commonly sits around unconfigured), so every call is timeout-guarded to
     # keep an unreachable/misconfigured client from hanging the login banner.
     # First output line is "name|role", pod names follow one per line.
-    if command -v kubectl >/dev/null 2>&1; then
+    if _section_on k8s && command -v kubectl >/dev/null 2>&1; then
         {
             local k_node_name=""
             k_node_name=$(timeout 1 kubectl get node "$hostname" --request-timeout=1s -o jsonpath='{.metadata.name}' 2>/dev/null)
@@ -207,7 +227,7 @@ _welcome_banner() {
     fi
 
     # runit service health - only meaningful (and readable) as root
-    if [[ ${EUID} -eq 0 ]]; then
+    if _section_on services && [[ ${EUID} -eq 0 ]]; then
         {
             local svc="" svc_name="" svc_status=""
             for svc in /var/service/*; do
@@ -410,8 +430,14 @@ _welcome_banner() {
         "${BOLD}${ACCENT}OS:${RESET}       ${GRAY}${os_pretty}${RESET}"
         "${BOLD}${ACCENT}Kernel:${RESET}   ${GRAY}${kernel}${RESET}"
         "${BOLD}${ACCENT}Uptime:${RESET}   ${GRAY}${uptime_str}${RESET}"
-        "${BOLD}${ACCENT}Packages:${RESET} ${GRAY}${pkg_count} (xbps)${RESET}"
-        "${BOLD}${ACCENT}Updates:${RESET}  ${update_color}${update_count}${RESET}"
+    )
+    if _section_on pkg; then
+        info+=(
+            "${BOLD}${ACCENT}Packages:${RESET} ${GRAY}${pkg_count} (xbps)${RESET}"
+            "${BOLD}${ACCENT}Updates:${RESET}  ${update_color}${update_count}${RESET}"
+        )
+    fi
+    info+=(
         "${BOLD}${ACCENT}Shell:${RESET}    ${GRAY}${shell_name}${RESET}"
         ""
         "${BOLD}${ACCENT}CPU ${RESET} ${cpu_bar}"
@@ -433,7 +459,7 @@ _welcome_banner() {
 
     local n=0 k=0
 
-    if [[ ${EUID} -eq 0 ]]; then
+    if _section_on services && [[ ${EUID} -eq 0 ]]; then
         info+=("")
         if (( ${#bad_services[@]} > 0 )); then
             info+=("${BOLD}${RED}Services DOWN:${RESET}")
@@ -483,7 +509,7 @@ _welcome_banner() {
     done
 
     local -a docker_lines=()
-    if command -v docker >/dev/null 2>&1; then
+    if _section_on docker && command -v docker >/dev/null 2>&1; then
         docker_lines+=("${BOLD}${ACCENT}Docker:${RESET} ${GRAY}${#containers[@]}${RESET}")
         n=${#containers[@]}
         for (( k=0; k<n; k++ )); do
@@ -791,4 +817,4 @@ _welcome_banner
 # bash (unlike a real nested scope) defines helper functions declared inside
 # _welcome_banner as GLOBAL functions the moment it runs - unset every one of
 # them here or they leak into the interactive shell on every login.
-unset -f _welcome_banner _dual _visible_len _meter _load_color _branch _pct_color _hline
+unset -f _welcome_banner _dual _visible_len _meter _load_color _branch _pct_color _hline _section_on

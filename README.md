@@ -15,6 +15,8 @@ vim.config/     init.vim (plugins, keybindings, formatting)
 tmux.config/    tmux.session.sh - save/restore tmux sessions
 vpn.config/     connect.sh / disconnect.sh wrapping openconnect, + a VPN host list
 sshd.ssh.config/ sshd_config + welcome.sh (the login banner, see below)
+test/           welcome-smoke.sh - mocks every external command welcome.sh
+                calls and asserts its output/behavior (see CI below)
 distro.guide/   void.linux/README.md - Void install/xbps/runit cheat sheet
 get.package.manager.zsh  detects the box's package manager (apt/pacman/xbps/...)
 make.symlinks.sh         installs everything below (see Install)
@@ -86,9 +88,12 @@ what's already on the box (`awk`, `free`, `df`, `xbps-query`, `numfmt`,
 - Void's ascii logo, colored 1:1 against a real neofetch capture (green
   for a regular user, red as root), with a `© TBS093A` signature footer.
 - OS/kernel/uptime/package count, pending xbps updates, and htop-style
-  CPU/RAM/DISK meters (colored red/yellow/green by usage), each with a
-  compact branch line for the percentage + detail underneath.
-- A horizontal Load average + per-core row that wraps to fit the terminal.
+  CPU/RAM/DISK/GPU meters (colored red/yellow/green by usage), each with a
+  compact branch line for the percentage + detail underneath. GPU is
+  NVIDIA (`nvidia-smi`) or AMD (`amdgpu` sysfs), averaged/summed across
+  multiple cards; skipped entirely if there isn't one.
+- A horizontal Load average + per-core row, and (only with a GPU present)
+  a matching per-card row - both wrap to fit the terminal.
 - Sessions / IP / Docker containers / K8s node (name, role, scheduled
   pods) - as a 2-4 column row, side by side when they fit and stacked
   full-width when the terminal's too narrow. Docker and K8s each only
@@ -106,6 +111,33 @@ Everything sizes itself to `tput cols` - separators, the core/ports
 wrapping, and a fallback to a stacked (non-side-by-side) layout when the
 terminal's too narrow for the logo and info column together. Works
 identically sourced (bash or zsh login shell) or executed (run-parts).
+
+The slow, independent lookups (xbps, docker, GPU, kubectl, service health)
+run backgrounded and concurrently rather than piling up serially, so total
+time is bounded by the slowest one instead of their sum. Two env vars tune
+this further:
+
+- `WELCOME_SECTIONS` - comma-separated allowlist of `pkg,docker,gpu,k8s,services`
+  (default: all). Skips the background job itself, not just its rendering -
+  useful on slower/headless boxes. `WELCOME_SECTIONS=` (empty) turns every
+  optional section off.
+- `NO_COLOR` - any non-empty value strips every ANSI escape code, per the
+  [NO_COLOR](https://no-color.org) convention.
+
+## CI
+
+Two GitHub Actions workflows run on every push:
+
+- `lint.yml` - `shellcheck` on every bash script, plus `bash -n`/`zsh -n`
+  syntax checks (`welcome.sh` is checked under both, since it's sourced by
+  either shell).
+- `test.yml` - `test/welcome-smoke.sh`: stubs every external command and
+  hardcoded system path `welcome.sh` reads, then sources it under a real
+  pty. Runs under both bash and zsh, since the two bugs it guards against
+  (job-control notification spam leaking into the login shell, and a
+  meter bar built from a variable the backgrounded job hadn't populated
+  yet) only show up in a genuinely interactive shell - `bash -c`/`zsh -c`
+  don't reach the code path that would catch either one.
 
 ## Void Linux notes
 
