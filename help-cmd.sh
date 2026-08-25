@@ -46,7 +46,7 @@ else
 fi
 _row "ex <archive>"           "extract tar/zip/gz/bz2/rar/7z - whatever it is (.bashrc)"
 
-_section "Fuzzy search"
+_section "Fuzzy search (fzf)"
 if _have fzf; then
     _row "Ctrl-R"              "fuzzy search command history"
     if _have bat || _have batcat; then
@@ -60,15 +60,6 @@ if _have fzf; then
 else
     _row "fzf"                 "not installed - Ctrl-R/T, Alt-C, fco, fkill need it"
 fi
-if _have zoxide; then
-    _row "zi"                  "fzf picker over zoxide's ranked directories"
-fi
-
-_section "Theming"
-_row "zsh.config/palette.zsh" "one gray/accent palette behind LS_COLORS, fzf, bat"
-_row "LS_COLORS"              "colors ls/eza dirs+symlinks+exes to match welcome.sh"
-_row "FZF_DEFAULT_OPTS"       "every fzf picker above uses the same accent"
-_row "BAT_THEME=ansi"         "bat renders through the terminal's own ANSI colors"
 
 _section "tmux"
 _row "tmux-session"           "save/restore the current tmux session (script)"
@@ -92,8 +83,6 @@ if _have direnv; then
 fi
 _row "vpn-00x097-connect"     "wg-quick up wg0-00x097"
 _row "vpn-00x097-disconnect"  "wg-quick down wg0-00x097"
-_row "vpn.config/connect.sh"  "openconnect up every host in VPNS_LIST (+ .local)"
-_row "vpn.config/disconnect.sh" "kill every running openconnect"
 _row "k8s"                    "= kubectl"
 _row "install.sh --local"     "full/desktop profile, incl. neovim (default)"
 _row "install.sh --server"    "server profile, skips neovim, offers Docker"
