@@ -70,6 +70,31 @@ _row "prefix + r"             "reload tmux.conf"
 _row "copy-mode: v / y"       "vi-style: start selection / copy and exit"
 _row "mouse"                  "click to select pane, drag to resize, scroll for copy-mode"
 
+_section "Neovim (vim.config/init.vim)"
+if _have nvim; then
+    _row "nvim <file>"        "nvim-tree, bufferline, lualine, treesitter, telescope"
+    _row "Ctrl-b"             "toggle the file tree (NvimTree)"
+    _row "Ctrl-s"             "save and close the buffer"
+    _row "Alt-t"              "toggle a terminal pane (ToggleTerm)"
+    _row "Alt-, / Alt-."      "previous / next buffer"
+    _row "Alt-1..9 / Alt-0"   "jump to buffer 1-9 / last"
+    _row "Alt-c"              "close current buffer"
+    _row ":Telescope find_files" "fuzzy file finder - no keybind, run as a command"
+    _row ":Telescope live_grep"  "fuzzy grep across the project"
+else
+    _row "nvim"                "not installed - install.sh --local includes it"
+fi
+
+_section "Also on this box (install.sh)"
+_row "curl"                   "installed, no alias - plain curl"
+_row "openconnect"            "installed for vpn.config/connect.sh (SSL VPN)"
+_row "wireguard-tools"        "installed for the vpn-00x097-* aliases (wg-quick)"
+if _have fc-list && fc-list 2>/dev/null | grep -qi "nerd font"; then
+    _row "Nerd Font symbols"  "installed - eza's icons should render locally"
+else
+    _row "Nerd Font symbols"  "not found here - eza --icons needs one (see README)"
+fi
+
 _section "git ($HOME/.gitconfig aliases)"
 _row "git lg / lg0 / lg1"     "graph log, plain / with author+date"
 _row "git cmm"                "add -A && commitizen commit"
