@@ -95,11 +95,21 @@ _welcome_banner() {
     mkdir -p "$_tmpdir" 2>/dev/null
     local -a _bg_pids=()
 
+    # this function is sourced straight into the caller's interactive login
+    # shell, so without this every job backgrounded below would register in
+    # *its* job table and print "[1] PID" / "[1]+ Done ..." notifications
+    # (verbatim command text included) around the banner. Monitor mode is what
+    # gates that reporting in both bash and zsh, so drop it for the duration
+    # and restore whatever it was once every job has been collected.
+    local _had_monitor=0
+    case $- in *m*) _had_monitor=1 ;; esac
+    set +m 2>/dev/null
+
     # installed package count + pending updates (dry run against locally cached
     # repodata - no network sync, but each still walks the whole xbps pkgdb)
     { xbps-query -l 2>/dev/null | wc -l; } > "$_tmpdir/pkg_count" &
     _bg_pids+=($!)
-    { xbps-install -un 2>/dev/null | grep -c .; } > "$_tmpdir/update_count" &
+    { xbps-install -un 2>/dev/null | grep -c . || true; } > "$_tmpdir/update_count" &
     _bg_pids+=($!)
 
     # CPU load: two full /proc/stat samples ~150ms apart, htop-style instantaneous
@@ -253,7 +263,6 @@ _welcome_banner() {
     }
 
     local bar_width=20
-    local cpu_bar; cpu_bar=$(_meter "$cpu_pct" "$bar_width" 0)
     local ram_bar; ram_bar=$(_meter "$ram_pct" "$bar_width" 0)
     local disk_bar; disk_bar=$(_meter "$disk_pct" "$bar_width" 0)
 
@@ -292,6 +301,7 @@ _welcome_banner() {
     for _bg_pid in "${_bg_pids[@]}"; do
         wait "$_bg_pid" 2>/dev/null
     done
+    (( _had_monitor )) && set -m 2>/dev/null
 
     local pkg_count=0 update_count=0
     [[ -s $_tmpdir/pkg_count ]] && pkg_count=$(<"$_tmpdir/pkg_count")
@@ -309,6 +319,7 @@ _welcome_banner() {
             fi
         done < "$_tmpdir/cpu"
     fi
+    local cpu_bar; cpu_bar=$(_meter "$cpu_pct" "$bar_width" 0)
 
     local -a containers=()
     if [[ -f $_tmpdir/docker ]]; then
