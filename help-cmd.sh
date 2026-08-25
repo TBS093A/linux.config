@@ -90,7 +90,9 @@ if _have nvim; then
     _row "d / x / c / p"       "delete / cut / copy / paste"
     _row "y / Y / g y"         "copy name / relative path / absolute path"
     _row "Enter / Tab"         "open / open keeping cursor in the tree"
-    _row "Ctrl-t/v/x"          "open in new tab / vsplit / hsplit"
+    _row "Ctrl-t"              "open in a new tab"
+    _row "Ctrl-v"              "open in a vertical split"
+    _row "Ctrl-x"              "open in a horizontal split"
 
     _section "Neovim: terminal (ToggleTerm) + multi-cursor (vim-visual-multi)"
     _row "Alt-t"               "toggle a terminal pane (normal + insert mode)"
