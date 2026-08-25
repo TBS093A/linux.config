@@ -356,14 +356,17 @@ _welcome_banner() {
     fi
 
     local gpu_count=0 gpu_pct=0 gpu_used_mb=0 gpu_total_mb=0
+    local -a gpu_pct_per_card=()
     if [[ -s $_tmpdir/gpu ]]; then
         local _gname="" _gbusy="" _gused="" _gtotal="" _gbusy_sum=0
         while IFS=',' read -r _gname _gbusy _gused _gtotal; do
             [[ -z $_gbusy ]] && continue
+            _gbusy=${_gbusy# }
             gpu_count=$(( gpu_count+1 ))
             _gbusy_sum=$(( _gbusy_sum + _gbusy ))
             gpu_used_mb=$(( gpu_used_mb + _gused ))
             gpu_total_mb=$(( gpu_total_mb + _gtotal ))
+            gpu_pct_per_card+=("$_gbusy")
         done < "$_tmpdir/gpu"
         (( gpu_count > 0 )) && gpu_pct=$(( _gbusy_sum / gpu_count ))
     fi
@@ -451,6 +454,15 @@ _welcome_banner() {
     n=${#core_pct[@]}
     for (( k=0; k<n; k++ )); do
         core_cells+=("${GRAY}c${k}${RESET} $(_meter "${core_pct[$k]}" 8)")
+    done
+
+    # GPU cards - same idea as the CPU cores row above, but one cell per card
+    # instead of per core (only meaningful with >1 GPU; a single card already
+    # has its own full bar up in the CPU/RAM/DISK/GPU column)
+    local -a gpu_cells=()
+    n=${#gpu_pct_per_card[@]}
+    for (( k=0; k<n; k++ )); do
+        gpu_cells+=("${GRAY}g${k}${RESET} $(_meter "${gpu_pct_per_card[$k]}" 8)")
     done
 
     # Sessions / IP / Docker / Ports - stacked full-width blocks (old vertical style)
@@ -575,7 +587,7 @@ _welcome_banner() {
     echo
     echo
 
-    # --- Load + CPU cores, horizontal, wrapped to the terminal width ---
+    # --- Load + CPU cores + GPU cards, horizontal, wrapped to the terminal width ---
     printf '%s\n' "$load_line"
     if (( ${#core_cells[@]} > 0 )); then
         local cell_w=0 cl="" clen=0
@@ -594,6 +606,30 @@ _welcome_banner() {
                 clen=$(_visible_len "${core_cells[$ci]}")
                 core_pad=$(( cell_w - clen + 2 ))
                 printf '%*s' "$core_pad" ''
+            fi
+        done
+    fi
+
+    # GPU cards - same wrapped-row treatment as the CPU cores above
+    if (( ${#gpu_cells[@]} > 0 )); then
+        echo
+        printf '%s\n' "${BOLD}${ACCENT}GPU${RESET}"
+        local cell_w=0 cl="" clen=0
+        for cl in "${gpu_cells[@]}"; do
+            clen=$(_visible_len "$cl")
+            (( clen > cell_w )) && cell_w=$clen
+        done
+        local per_row=$(( term_width / (cell_w+2) ))
+        (( per_row < 1 )) && per_row=1
+        local gi=0 gpu_pad=0
+        for (( gi=0; gi<${#gpu_cells[@]}; gi++ )); do
+            printf '%s' "${gpu_cells[$gi]}"
+            if (( (gi+1) % per_row == 0 || gi == ${#gpu_cells[@]}-1 )); then
+                printf '\n'
+            else
+                clen=$(_visible_len "${gpu_cells[$gi]}")
+                gpu_pad=$(( cell_w - clen + 2 ))
+                printf '%*s' "$gpu_pad" ''
             fi
         done
     fi
