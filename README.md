@@ -12,7 +12,8 @@ bash.config/    .bashrc, .bash_profile
 zsh.config/     .zshrc, oh-my-zsh install/plugin scripts, the lambda-00x097 theme
 git.config/     .gitconfig (aliases, commitizen, per-host TLS override for git.00x097.com)
 vim.config/     init.vim (plugins, keybindings, formatting)
-tmux.config/    tmux.session.sh - save/restore tmux sessions
+tmux.config/    tmux.conf (vim-style panes, welcome.sh-matched statusbar) +
+                tmux.session.sh - save/restore tmux sessions
 vpn.config/     connect.sh / disconnect.sh wrapping openconnect, + a VPN host list
 sshd.ssh.config/ sshd_config + welcome.sh (the login banner, see below)
 test/           welcome-smoke.sh - mocks every external command welcome.sh
@@ -21,6 +22,7 @@ distro.guide/   void.linux/README.md - Void install/xbps/runit cheat sheet
 get.package.manager.zsh  detects the box's package manager (apt/pacman/xbps/...)
 make.symlinks.sh         installs everything below (see Install)
 install.sh               bootstraps a bare box: packages + oh-my-zsh + symlinks
+help-cmd.sh              `help-cmd` - prints every command/keybind below (see CLI below)
 ```
 
 ## Install
@@ -50,7 +52,7 @@ If you'd rather skip the package install (already have everything) and
 just re-point the symlinks:
 
 ```bash
-./make.symlinks.sh            # user-level dotfiles only (~/.gitconfig, ~/.zshrc, nvim config)
+./make.symlinks.sh            # user-level dotfiles only (~/.gitconfig, ~/.zshrc, ~/.tmux.conf, nvim config)
 sudo ./make.symlinks.sh --system   # also links sshd_config + the MOTD banner (needs root)
 ```
 
@@ -75,6 +77,31 @@ instead of the tracked one:
   automatically by `.zshrc` if present.
 - `vpn.config/vpns.local` (see `vpns.local.example`) - appended to
   `VPNS_LIST` automatically by `connect.sh` if present.
+
+## Day-to-day extras
+
+`help-cmd` prints all of this from the shell itself (colored to match
+`welcome.sh`) - run it any time you forget what's here. `install.sh` pulls
+in `zoxide`, `direnv`, `eza`, and `bat` alongside the base packages; each
+piece below only activates if its tool is actually present (`command -v`
+guarded), so nothing breaks on a box where one of them failed to install.
+
+- **zoxide** - `z <partial-path>` jumps to a frecency-ranked directory
+  match, `zi` opens an fzf picker over ranked directories. Replaces `cd`
+  for anywhere you've already been.
+- **direnv** - per-directory env vars from a `.envrc`, loaded/unloaded
+  automatically on `cd`. Opt a directory in once with `direnv allow`.
+- **eza / bat** - `ls`/`ll`/`la` and `cat` are aliased to `eza`/`bat` when
+  installed (icons + git status on listings, syntax highlighting on file
+  contents); bat installs as `batcat` on Debian/Ubuntu, handled either way.
+- **fzf, deeper than completion** - `Ctrl-T`'s file picker previews with
+  `bat` when it's around; `fco` fuzzy-picks a local/remote git branch and
+  checks it out; `fkill` fuzzy-picks a process (sorted by CPU) and
+  `kill -9`s it.
+- **tmux.conf** - keeps the default `C-b` prefix, adds vim-style pane
+  splits/navigation (`| -` to split, `hjkl` to move, `HJKL` to resize),
+  vi copy-mode, mouse support, and a statusbar in the same palette as
+  `welcome.sh` (gray labels, green accent).
 
 ## The login banner (`sshd.ssh.config/welcome.sh`)
 
@@ -106,6 +133,8 @@ what's already on the box (`awk`, `free`, `df`, `xbps-query`, `numfmt`,
 - A red WARNING banner once `/` crosses 90% used.
 - Runit service health (root-only, since `/var/service/*/supervise`
   isn't world-readable).
+- A pointer to `help-cmd` (see Day-to-day extras above) right before the
+  footer, for anyone landing on the box for the first time.
 
 Everything sizes itself to `tput cols` - separators, the core/ports
 wrapping, and a fallback to a stacked (non-side-by-side) layout when the

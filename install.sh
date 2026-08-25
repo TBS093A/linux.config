@@ -57,7 +57,7 @@ if [[ -z $PKG_MGR ]]; then
 fi
 if [[ -z $PKG_MGR ]]; then
     warn "Couldn't detect a supported package manager - install these manually:"
-    warn "  git zsh tmux curl openconnect wireguard-tools fzf$([[ $PROFILE == local ]] && echo ' neovim')"
+    warn "  git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat$([[ $PROFILE == local ]] && echo ' neovim')"
     PKG_MGR=none
 fi
 log "Profile: $PROFILE, package manager: $PKG_MGR"
@@ -91,7 +91,7 @@ if [[ $PKG_MGR == apt-get ]]; then
     _sudo apt-get update -qq || warn "apt-get update failed - continuing with whatever's cached"
 fi
 
-BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf)
+BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat)
 if [[ $PROFILE == local ]]; then
     BASE_PKGS+=(neovim)
 fi

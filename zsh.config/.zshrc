@@ -116,7 +116,46 @@ source $ZSH/oh-my-zsh.sh
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+# zoxide: frecency-ranked `cd` (z <partial>, zi for the fzf picker)
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
+
+# direnv: per-directory env vars from .envrc, opted in with `direnv allow`
+command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"
+
+# eza/bat: same info as ls/cat, easier to read. bat ships as `batcat` on
+# Debian/Ubuntu (name clash with another package) - alias whichever exists.
+if command -v eza >/dev/null 2>&1; then
+    alias ls='eza --icons --group-directories-first'
+    alias ll='eza --icons --group-directories-first -l'
+    alias la='eza --icons --group-directories-first -la'
+fi
+if command -v bat >/dev/null 2>&1; then
+    alias cat='bat --style=plain --paging=never'
+elif command -v batcat >/dev/null 2>&1; then
+    alias cat='batcat --style=plain --paging=never'
+fi
+
+# fzf's file-insert widget (Ctrl-T) previews with bat when it's around
+if command -v bat >/dev/null 2>&1 || command -v batcat >/dev/null 2>&1; then
+    export FZF_CTRL_T_OPTS="--preview '(bat --color=always --style=numbers --line-range=:500 {} || batcat --color=always --style=numbers --line-range=:500 {}) 2>/dev/null'"
+fi
+
+# fco: fuzzy git checkout - pick a local or remote branch
+fco() {
+    local branch
+    branch=$(git branch --all --format='%(refname:short)' 2>/dev/null | sed 's#^origin/##' | sort -u | fzf --height 40% --reverse) || return
+    [[ -n $branch ]] && git checkout "$branch"
+}
+
+# fkill: fuzzy-pick a process, confirm, kill -9 it
+fkill() {
+    local pid
+    pid=$(ps -eo pid,user,pcpu,pmem,comm --sort=-pcpu | fzf --height 40% --reverse --header-lines=1 | awk '{print $1}') || return
+    [[ -n $pid ]] && kill -9 "$pid"
+}
+
 alias tmux-session="$DOTFILES_DIR/tmux.config/tmux.session.sh"
+alias help-cmd="$DOTFILES_DIR/help-cmd.sh"
 
 alias add-tbs093a-git-id='eval "$(ssh-agent -s)"; ssh-add ~/.ssh/git_accesses'
 

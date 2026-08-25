@@ -808,6 +808,9 @@ _welcome_banner() {
         printf '%s%s⚠ WARNING: disk / at %s%% capacity!%s\n\n' "$BOLD" "$RED" "$disk_pct" "$RESET"
     fi
 
+    printf '%sNew here? Run %s%shelp-cmd%s%s for a rundown of what you can run on this box.%s\n\n' \
+        "$GRAY" "$RESET" "$BOLD" "$RESET" "$GRAY" "$RESET"
+
     local year; year=$(date +%Y)
     printf '%s%s%s\n' "$GRAY" "$(_hline "$term_width")" "$RESET"
     printf '%s%s© %s TBS093A%s %s· %s · linux.config dotfiles%s\n' "$BOLD" "$ACCENT" "$year" "$RESET" "$GRAY" "$hostname" "$RESET"

@@ -7,6 +7,7 @@ link_user_configs() {
 	ln -sf "$DOTFILES_DIR/git.config/.gitconfig" ~/.gitconfig
 	ln -sf "$DOTFILES_DIR/zsh.config/.zshrc" ~/.zshrc
 	ln -sf "$DOTFILES_DIR/zsh.config/lambda-00x097.zsh-theme" ~/.oh-my-zsh/themes/lambda-00x097.zsh-theme
+	ln -sf "$DOTFILES_DIR/tmux.config/tmux.conf" ~/.tmux.conf
 
 	mkdir -p ~/.config/nvim
 	ln -sf "$DOTFILES_DIR/vim.config/init.vim" ~/.config/nvim/init.vim
