@@ -79,47 +79,112 @@ _welcome_banner() {
         os_pretty=$(. /etc/os-release; echo "$PRETTY_NAME")
     fi
     local shell_name; shell_name=$(basename "${SHELL:-sh}")
-    local pkg_count; pkg_count=$(xbps-query -l 2>/dev/null | wc -l)
 
     local up_secs; up_secs=$(awk '{print int($1)}' /proc/uptime)
     local up_days=$(( up_secs/86400 )) up_hours=$(( (up_secs%86400)/3600 )) up_mins=$(( (up_secs%3600)/60 ))
     local uptime_str="${up_days}d ${up_hours}h ${up_mins}m"
+    local cpu_cores; cpu_cores=$(nproc)
+
+    # --- kick off every slow, independent lookup in the background so they run
+    # concurrently instead of piling up serially: xbps queries, the CPU sample's
+    # mandatory 150ms delta sleep, and the docker/kubectl/service-health round
+    # trips. Each writes its result to its own file in a private tmpdir; nothing
+    # blocks on them until they're actually needed for the info array below, by
+    # which point everything else this function can do without them has run. ---
+    local _tmpdir; _tmpdir=$(mktemp -d 2>/dev/null) || _tmpdir="/tmp/.welcome-banner-$$"
+    mkdir -p "$_tmpdir" 2>/dev/null
+    local -a _bg_pids=()
+
+    # installed package count + pending updates (dry run against locally cached
+    # repodata - no network sync, but each still walks the whole xbps pkgdb)
+    { xbps-query -l 2>/dev/null | wc -l; } > "$_tmpdir/pkg_count" &
+    _bg_pids+=($!)
+    { xbps-install -un 2>/dev/null | grep -c .; } > "$_tmpdir/update_count" &
+    _bg_pids+=($!)
 
     # CPU load: two full /proc/stat samples ~150ms apart, htop-style instantaneous
     # % for both the aggregate line and each individual core (used below for the
-    # per-core tree breakdown).
-    local stat1="" stat2=""
-    stat1=$(cat /proc/stat)
-    sleep 0.15
-    stat2=$(cat /proc/stat)
+    # per-core tree breakdown). Backgrounded so the mandatory 150ms sleep overlaps
+    # the other lookups instead of stalling them; first output line is the
+    # aggregate pct, one line per core (in /proc/stat order) after that.
+    {
+        local bstat1="" bstat2=""
+        bstat1=$(cat /proc/stat)
+        sleep 0.15
+        bstat2=$(cat /proc/stat)
 
-    _cpu_pct_from_fields() {
-        # args: u1 n1 s1 i1 w1 irq1 sirq1 u2 n2 s2 i2 w2 irq2 sirq2
-        local u1=$1 n1=$2 s1=$3 i1=$4 w1=$5 irq1=$6 sirq1=$7
-        local u2=$8 n2=$9 s2=${10} i2=${11} w2=${12} irq2=${13} sirq2=${14}
-        local idle1=$((i1+w1)) idle2=$((i2+w2))
-        local total1=$((u1+n1+s1+i1+w1+irq1+sirq1)) total2=$((u2+n2+s2+i2+w2+irq2+sirq2))
-        local totald=$((total2-total1)) idled=$((idle2-idle1))
-        local pct=0
-        (( totald > 0 )) && pct=$(( (100*(totald-idled))/totald ))
-        printf '%s' "$pct"
-    }
+        _cpu_pct_from_fields() {
+            # args: u1 n1 s1 i1 w1 irq1 sirq1 u2 n2 s2 i2 w2 irq2 sirq2
+            local u1=$1 n1=$2 s1=$3 i1=$4 w1=$5 irq1=$6 sirq1=$7
+            local u2=$8 n2=$9 s2=${10} i2=${11} w2=${12} irq2=${13} sirq2=${14}
+            local idle1=$((i1+w1)) idle2=$((i2+w2))
+            local total1=$((u1+n1+s1+i1+w1+irq1+sirq1)) total2=$((u2+n2+s2+i2+w2+irq2+sirq2))
+            local totald=$((total2-total1)) idled=$((idle2-idle1))
+            local pct=0
+            (( totald > 0 )) && pct=$(( (100*(totald-idled))/totald ))
+            printf '%s' "$pct"
+        }
 
-    local _name="" u1=0 n1=0 s1=0 i1=0 w1=0 irq1=0 sirq1=0
-    read -r _name u1 n1 s1 i1 w1 irq1 sirq1 _ <<< "$(awk '/^cpu /{print;exit}' <<< "$stat1")"
-    local u2=0 n2=0 s2=0 i2=0 w2=0 irq2=0 sirq2=0
-    read -r _name u2 n2 s2 i2 w2 irq2 sirq2 _ <<< "$(awk '/^cpu /{print;exit}' <<< "$stat2")"
-    local cpu_pct; cpu_pct=$(_cpu_pct_from_fields "$u1" "$n1" "$s1" "$i1" "$w1" "$irq1" "$sirq1" "$u2" "$n2" "$s2" "$i2" "$w2" "$irq2" "$sirq2")
-    local cpu_cores; cpu_cores=$(nproc)
+        local _name="" u1=0 n1=0 s1=0 i1=0 w1=0 irq1=0 sirq1=0
+        read -r _name u1 n1 s1 i1 w1 irq1 sirq1 _ <<< "$(awk '/^cpu /{print;exit}' <<< "$bstat1")"
+        local u2=0 n2=0 s2=0 i2=0 w2=0 irq2=0 sirq2=0
+        read -r _name u2 n2 s2 i2 w2 irq2 sirq2 _ <<< "$(awk '/^cpu /{print;exit}' <<< "$bstat2")"
+        _cpu_pct_from_fields "$u1" "$n1" "$s1" "$i1" "$w1" "$irq1" "$sirq1" "$u2" "$n2" "$s2" "$i2" "$w2" "$irq2" "$sirq2"
+        echo
 
-    local -a core_pct=()
-    while read -r _name u1 n1 s1 i1 w1 irq1 sirq1 _; do
-        [[ $_name =~ ^cpu[0-9]+$ ]] || continue
-        read -r _ u2 n2 s2 i2 w2 irq2 sirq2 _ <<< "$(awk -v c="$_name" '$1==c{print;exit}' <<< "$stat2")"
-        core_pct+=("$(_cpu_pct_from_fields "$u1" "$n1" "$s1" "$i1" "$w1" "$irq1" "$sirq1" "$u2" "$n2" "$s2" "$i2" "$w2" "$irq2" "$sirq2")")
-    done <<< "$stat1"
+        while read -r _name u1 n1 s1 i1 w1 irq1 sirq1 _; do
+            [[ $_name =~ ^cpu[0-9]+$ ]] || continue
+            read -r _ u2 n2 s2 i2 w2 irq2 sirq2 _ <<< "$(awk -v c="$_name" '$1==c{print;exit}' <<< "$bstat2")"
+            _cpu_pct_from_fields "$u1" "$n1" "$s1" "$i1" "$w1" "$irq1" "$sirq1" "$u2" "$n2" "$s2" "$i2" "$w2" "$irq2" "$sirq2"
+            echo
+        done <<< "$bstat1"
+    } > "$_tmpdir/cpu" &
+    _bg_pids+=($!)
 
-    # load average, colored per-window relative to core count (same thresholds as the bars)
+    # running docker containers (works without sudo only if the user is in the docker group)
+    if command -v docker >/dev/null 2>&1; then
+        { docker ps --format '{{.Names}}' 2>/dev/null; } > "$_tmpdir/docker" &
+        _bg_pids+=($!)
+    fi
+
+    # Kubernetes node info - only shown if this host actually registers as a
+    # node in a reachable cluster. kubectl being installed proves nothing (it
+    # commonly sits around unconfigured), so every call is timeout-guarded to
+    # keep an unreachable/misconfigured client from hanging the login banner.
+    # First output line is "name|role", pod names follow one per line.
+    if command -v kubectl >/dev/null 2>&1; then
+        {
+            local k_node_name=""
+            k_node_name=$(timeout 1 kubectl get node "$hostname" --request-timeout=1s -o jsonpath='{.metadata.name}' 2>/dev/null)
+            if [[ -n $k_node_name ]]; then
+                local k_labels="" k_node_role="worker"
+                k_labels=$(timeout 1 kubectl get node "$k_node_name" --request-timeout=1s -o jsonpath='{.metadata.labels}' 2>/dev/null)
+                if [[ $k_labels == *"node-role.kubernetes.io/control-plane"* || $k_labels == *"node-role.kubernetes.io/master"* ]]; then
+                    k_node_role="control-plane"
+                fi
+                printf '%s|%s\n' "$k_node_name" "$k_node_role"
+                timeout 1 kubectl get pods --all-namespaces --field-selector "spec.nodeName=${k_node_name}" --request-timeout=1s -o custom-columns=NAME:.metadata.name --no-headers 2>/dev/null
+            fi
+        } > "$_tmpdir/k8s" &
+        _bg_pids+=($!)
+    fi
+
+    # runit service health - only meaningful (and readable) as root
+    if [[ ${EUID} -eq 0 ]]; then
+        {
+            local svc="" svc_name="" svc_status=""
+            for svc in /var/service/*; do
+                [[ -e $svc ]] || continue
+                svc_name=$(basename "$svc")
+                svc_status=$(sv status "$svc" 2>/dev/null)
+                [[ $svc_status == run:* ]] || echo "$svc_name"
+            done
+        } > "$_tmpdir/bad_services" &
+        _bg_pids+=($!)
+    fi
+
+    # load average, colored per-window relative to core count (same thresholds as
+    # the bars) - purely local /proc read, no need to background it
     local load1="" load5="" load15=""; read -r load1 load5 load15 _ < /proc/loadavg
     _load_color() {
         local ratio; ratio=$(awk -v l="$1" -v c="$cpu_cores" 'BEGIN{printf "%d", (l/c)*100}')
@@ -131,11 +196,6 @@ _welcome_banner() {
     local load1_color; load1_color=$(_load_color "$load1")
     local load5_color; load5_color=$(_load_color "$load5")
     local load15_color; load15_color=$(_load_color "$load15")
-
-    # pending xbps updates - dry run against locally cached repodata (no network sync)
-    local update_count; update_count=$(xbps-install -un 2>/dev/null | grep -c .)
-    local update_color=$GREEN
-    (( update_count > 0 )) && update_color=$YELLOW
 
     # active logged-in sessions
     local -a sessions=()
@@ -154,48 +214,6 @@ _welcome_banner() {
         [[ $addr == 169.254.* ]] && continue
         ips+=("${iface}: ${addr}")
     done < <(ip -4 -o addr show scope global 2>/dev/null)
-
-    # running docker containers (works without sudo only if the user is in the docker group)
-    local -a containers=()
-    if command -v docker >/dev/null 2>&1; then
-        while IFS= read -r cline; do
-            [[ -n $cline ]] && containers+=("$cline")
-        done < <(docker ps --format '{{.Names}}' 2>/dev/null)
-    fi
-
-    # Kubernetes node info - only shown if this host actually registers as a
-    # node in a reachable cluster. kubectl being installed proves nothing (it
-    # commonly sits around unconfigured), so every call is timeout-guarded to
-    # keep an unreachable/misconfigured client from hanging the login banner.
-    local k8s_node_name="" k8s_node_role=""
-    local -a k8s_pods=()
-    if command -v kubectl >/dev/null 2>&1; then
-        k8s_node_name=$(timeout 1 kubectl get node "$hostname" --request-timeout=1s -o jsonpath='{.metadata.name}' 2>/dev/null)
-        if [[ -n $k8s_node_name ]]; then
-            local k8s_labels=""
-            k8s_labels=$(timeout 1 kubectl get node "$k8s_node_name" --request-timeout=1s -o jsonpath='{.metadata.labels}' 2>/dev/null)
-            if [[ $k8s_labels == *"node-role.kubernetes.io/control-plane"* || $k8s_labels == *"node-role.kubernetes.io/master"* ]]; then
-                k8s_node_role="control-plane"
-            else
-                k8s_node_role="worker"
-            fi
-            while IFS= read -r kline; do
-                [[ -n $kline ]] && k8s_pods+=("$kline")
-            done < <(timeout 1 kubectl get pods --all-namespaces --field-selector "spec.nodeName=${k8s_node_name}" --request-timeout=1s -o custom-columns=NAME:.metadata.name --no-headers 2>/dev/null)
-        fi
-    fi
-
-    # runit service health - only meaningful (and readable) as root
-    local -a bad_services=()
-    if [[ ${EUID} -eq 0 ]]; then
-        local svc="" svc_name="" svc_status=""
-        for svc in /var/service/*; do
-            [[ -e $svc ]] || continue
-            svc_name=$(basename "$svc")
-            svc_status=$(sv status "$svc" 2>/dev/null)
-            [[ $svc_status == run:* ]] || bad_services+=("$svc_name")
-        done
-    fi
 
     local mem_total=0 mem_used=0
     read -r mem_total mem_used < <(free -b | awk '/^Mem:/{print $2, $3}')
@@ -266,6 +284,62 @@ _welcome_banner() {
         else printf '%s' "$GREEN"
         fi
     }
+
+    # --- collect the backgrounded lookups now that they're actually needed;
+    # everything above ran concurrently with them, so this only waits out
+    # whichever one was slowest instead of the sum of all of them ---
+    local _bg_pid
+    for _bg_pid in "${_bg_pids[@]}"; do
+        wait "$_bg_pid" 2>/dev/null
+    done
+
+    local pkg_count=0 update_count=0
+    [[ -s $_tmpdir/pkg_count ]] && pkg_count=$(<"$_tmpdir/pkg_count")
+    [[ -s $_tmpdir/update_count ]] && update_count=$(<"$_tmpdir/update_count")
+    local update_color=$GREEN
+    (( update_count > 0 )) && update_color=$YELLOW
+
+    local cpu_pct=0
+    local -a core_pct=()
+    if [[ -s $_tmpdir/cpu ]]; then
+        local _first=1 _cline=""
+        while IFS= read -r _cline; do
+            if (( _first )); then cpu_pct=$_cline; _first=0
+            else core_pct+=("$_cline")
+            fi
+        done < "$_tmpdir/cpu"
+    fi
+
+    local -a containers=()
+    if [[ -f $_tmpdir/docker ]]; then
+        while IFS= read -r _cline; do
+            [[ -n $_cline ]] && containers+=("$_cline")
+        done < "$_tmpdir/docker"
+    fi
+
+    local k8s_node_name="" k8s_node_role=""
+    local -a k8s_pods=()
+    if [[ -s $_tmpdir/k8s ]]; then
+        local _first=1 _cline=""
+        while IFS= read -r _cline; do
+            if (( _first )); then
+                k8s_node_name=${_cline%%|*}
+                k8s_node_role=${_cline#*|}
+                _first=0
+            else
+                [[ -n $_cline ]] && k8s_pods+=("$_cline")
+            fi
+        done < "$_tmpdir/k8s"
+    fi
+
+    local -a bad_services=()
+    if [[ -f $_tmpdir/bad_services ]]; then
+        while IFS= read -r _cline; do
+            [[ -n $_cline ]] && bad_services+=("$_cline")
+        done < "$_tmpdir/bad_services"
+    fi
+
+    rm -rf "$_tmpdir" 2>/dev/null
 
     # --- right-hand info block (top-aligned against the logo, like neofetch) ---
     # label = accent (root/user color), value = dark gray; CPU/RAM/DISK meters
@@ -617,4 +691,4 @@ _welcome_banner
 # bash (unlike a real nested scope) defines helper functions declared inside
 # _welcome_banner as GLOBAL functions the moment it runs - unset every one of
 # them here or they leak into the interactive shell on every login.
-unset -f _welcome_banner _dual _visible_len _meter _cpu_pct_from_fields _load_color _branch _pct_color _hline
+unset -f _welcome_banner _dual _visible_len _meter _load_color _branch _pct_color _hline
