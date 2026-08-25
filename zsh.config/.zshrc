@@ -2,6 +2,10 @@
 # the ~/.zshrc symlink make.symlinks.sh creates back to its source.
 DOTFILES_DIR="$(dirname "$(dirname "$(readlink -f "$HOME/.zshrc")")")"
 
+# shared 256-color palette (LS_COLORS, FZF_DEFAULT_OPTS, BAT_THEME) - same
+# gray/accent welcome.sh uses, see the file for what reads it
+source "$DOTFILES_DIR/zsh.config/palette.zsh"
+
 # vpn connectivity commands aliases
 
 alias vpn-00x097-connect='sudo wg-quick up wg0-00x097'

@@ -41,7 +41,8 @@ jobs:
       - name: zsh -n
         run: |
           for f in get.package.manager.zsh vpn.config/connect.sh vpn.config/disconnect.sh \
-                   zsh.config/.zshrc zsh.config/lambda-00x097.zsh-theme sshd.ssh.config/welcome.sh; do
+                   zsh.config/.zshrc zsh.config/palette.zsh zsh.config/lambda-00x097.zsh-theme \
+                   sshd.ssh.config/welcome.sh; do
             echo "zsh -n $f"
             zsh -n "$f"
           done

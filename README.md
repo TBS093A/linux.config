@@ -9,7 +9,8 @@ though - see Install below.
 
 ```
 bash.config/    .bashrc, .bash_profile
-zsh.config/     .zshrc, oh-my-zsh install/plugin scripts, the lambda-00x097 theme
+zsh.config/     .zshrc, oh-my-zsh install/plugin scripts, the lambda-00x097
+                theme, palette.zsh (shared LS_COLORS/fzf/bat theming)
 git.config/     .gitconfig (aliases, commitizen, per-host TLS override for git.00x097.com)
 vim.config/     init.vim (plugins, keybindings, formatting)
 tmux.config/    tmux.conf (vim-style panes, welcome.sh-matched statusbar) +
@@ -94,6 +95,13 @@ guarded), so nothing breaks on a box where one of them failed to install.
 - **eza / bat** - `ls`/`ll`/`la` and `cat` are aliased to `eza`/`bat` when
   installed (icons + git status on listings, syntax highlighting on file
   contents); bat installs as `batcat` on Debian/Ubuntu, handled either way.
+- **`zsh.config/palette.zsh`** - the gray/accent numbers `welcome.sh` uses,
+  in one place, sourced by `.zshrc` and turned into `LS_COLORS` (so
+  directories/symlinks/executables in `ls`/`eza` match), `FZF_DEFAULT_OPTS`
+  (so every fzf picker - history, `Ctrl-T`, `fco`, `fkill`, `zi` - matches),
+  and `BAT_THEME=ansi` (so `bat` renders through the terminal's own ANSI
+  colors instead of a fixed theme). `tmux.conf`'s statusbar uses the same
+  numbers directly, since tmux config can't source shell files.
 - **fzf, deeper than completion** - `Ctrl-T`'s file picker previews with
   `bat` when it's around; `fco` fuzzy-picks a local/remote git branch and
   checks it out; `fkill` fuzzy-picks a process (sorted by CPU) and
