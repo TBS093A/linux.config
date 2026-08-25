@@ -157,6 +157,33 @@ _welcome_banner() {
         _bg_pids+=($!)
     fi
 
+    # GPU utilization/VRAM - NVIDIA via nvidia-smi (the common case for a server/
+    # VM), AMD via the amdgpu driver's sysfs busy-percent/vram files as a
+    # dependency-free fallback. Detection happens inside the job itself; an empty
+    # result file just means no GPU (or an unrecognized one), and the whole GPU
+    # bar is skipped at render time - same as Docker/K8s when not applicable.
+    # Each output line is "name, busy_pct, vram_used_MiB, vram_total_MiB";
+    # multiple lines mean multiple GPUs, averaged/summed when collected below.
+    {
+        if command -v nvidia-smi >/dev/null 2>&1; then
+            nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total \
+                --format=csv,noheader,nounits 2>/dev/null
+        else
+            local gdev="" gbusy="" gused="" gtotal=""
+            for gdev in /sys/class/drm/card*/device; do
+                [[ -r $gdev/gpu_busy_percent ]] || continue
+                gbusy=$(<"$gdev/gpu_busy_percent")
+                gused=0 gtotal=0
+                if [[ -r $gdev/mem_info_vram_used && -r $gdev/mem_info_vram_total ]]; then
+                    gused=$(( $(<"$gdev/mem_info_vram_used") / 1048576 ))
+                    gtotal=$(( $(<"$gdev/mem_info_vram_total") / 1048576 ))
+                fi
+                printf 'AMD GPU, %s, %s, %s\n' "$gbusy" "$gused" "$gtotal"
+            done
+        fi
+    } > "$_tmpdir/gpu" &
+    _bg_pids+=($!)
+
     # Kubernetes node info - only shown if this host actually registers as a
     # node in a reachable cluster. kubectl being installed proves nothing (it
     # commonly sits around unconfigured), so every call is timeout-guarded to
@@ -328,6 +355,25 @@ _welcome_banner() {
         done < "$_tmpdir/docker"
     fi
 
+    local gpu_count=0 gpu_pct=0 gpu_used_mb=0 gpu_total_mb=0
+    if [[ -s $_tmpdir/gpu ]]; then
+        local _gname="" _gbusy="" _gused="" _gtotal="" _gbusy_sum=0
+        while IFS=',' read -r _gname _gbusy _gused _gtotal; do
+            [[ -z $_gbusy ]] && continue
+            gpu_count=$(( gpu_count+1 ))
+            _gbusy_sum=$(( _gbusy_sum + _gbusy ))
+            gpu_used_mb=$(( gpu_used_mb + _gused ))
+            gpu_total_mb=$(( gpu_total_mb + _gtotal ))
+        done < "$_tmpdir/gpu"
+        (( gpu_count > 0 )) && gpu_pct=$(( _gbusy_sum / gpu_count ))
+    fi
+    local gpu_bar="" gpu_used_h="" gpu_total_h=""
+    if (( gpu_count > 0 )); then
+        gpu_bar=$(_meter "$gpu_pct" "$bar_width" 0)
+        gpu_used_h=$(numfmt --to=iec --suffix=B --format="%.1f" $(( gpu_used_mb*1048576 )))
+        gpu_total_h=$(numfmt --to=iec --suffix=B --format="%.1f" $(( gpu_total_mb*1048576 )))
+    fi
+
     local k8s_node_name="" k8s_node_role=""
     local -a k8s_pods=()
     if [[ -s $_tmpdir/k8s ]]; then
@@ -374,6 +420,13 @@ _welcome_banner() {
         "${BOLD}${ACCENT}DISK${RESET} ${disk_bar}"
         "${GRAY}$(_branch 0 1) $(_pct_color "$disk_pct")${disk_pct}%${RESET} ${GRAY}(${disk_used_h}/${disk_total_h})${RESET}"
     )
+    if (( gpu_count > 0 )); then
+        info+=(
+            ""
+            "${BOLD}${ACCENT}GPU ${RESET} ${gpu_bar}"
+            "${GRAY}$(_branch 0 1) $(_pct_color "$gpu_pct")${gpu_pct}%${RESET} ${GRAY}(${gpu_used_h}/${gpu_total_h})${RESET}"
+        )
+    fi
 
     local n=0 k=0
 
