@@ -1,9 +1,14 @@
 " nvim plugins
 
-  " vim-workspace script
-    if empty(glob('~/.vim/autoload/plug.vim'))
-      silent execute "!curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim"
-      autocmd VimEnter * PlugInstall | source $MYVIMRC
+  " vim-plug bootstrap - stdpath('data') . '/site/autoload/plug.vim' is
+  " where Neovim itself looks for autoload/plug#* functions (it does NOT
+  " look in ~/.vim/autoload - that's classic Vim's path, and checking/
+  " downloading there left plug#begin() undefined on any account that
+  " never had vim-plug installed by some other means first).
+    let s:plug_vim = stdpath('data') . '/site/autoload/plug.vim'
+    if empty(glob(s:plug_vim))
+      silent execute '!curl -fLo ' . s:plug_vim . ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+      autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
     endif
 
 call plug#begin()

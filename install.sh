@@ -144,8 +144,17 @@ log "Symlinking dotfiles (user-level)"
 "$DOTFILES_DIR/make.symlinks.sh"
 
 if [[ $PROFILE == local ]] && command -v nvim >/dev/null 2>&1; then
-    log "Bootstrapping nvim plugins (vim-plug + PlugInstall, init.vim does this on first launch)"
-    timeout 90 nvim --headless "+qa" 2>/dev/null || log "nvim plugin bootstrap timed out/failed - run nvim once manually to retry"
+    mkdir -p "$HOME/.cache/nvim"   # barbar.nvim writes its pin state here
+    log "Bootstrapping nvim: fetching vim-plug"
+    # init.vim downloads vim-plug itself on first launch if it's missing, but
+    # calls plug#begin() in that same launch - too soon for the freshly
+    # curl'd autoload/plug.vim to reliably be usable yet, so plug#begin
+    # errors out here (expected, not a failure) and no plugins get queued.
+    # A second, separate launch - vim-plug now actually on disk beforehand -
+    # is what makes PlugInstall itself reliable, hence two passes.
+    timeout 30 nvim --headless "+qa" >/dev/null 2>&1 || true
+    log "Bootstrapping nvim: installing plugins (PlugInstall)"
+    timeout 120 nvim --headless -c 'PlugInstall --sync' -c 'qa' 2>/dev/null || log "nvim plugin bootstrap timed out/failed - run nvim once manually to retry"
 fi
 
 if (( DO_SYSTEM )); then
