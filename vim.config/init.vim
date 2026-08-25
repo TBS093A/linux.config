@@ -56,8 +56,13 @@ call plug#begin()
   " Plugin outside ~/.vim/plugged with post-update hook
     Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 
-  " Unmanaged plugin (manually installed and updated)
-    Plug '~/my-prototype-plugin'
+  " Unmanaged plugin (manually installed and updated) - this was vim-plug's
+  " own README example path, never swapped for a real plugin, and
+  " ~/my-prototype-plugin doesn't exist. Left in, it makes g:plugs treat
+  " a plugin as permanently missing, which re-triggers PlugInstall's
+  " status window on every single startup - and that window is what was
+  " hitting a treesitter nil-value crash on this nvim version.
+  " Plug '~/my-prototype-plugin'
 
   " vim-workspace for create sessions
   " https://vimawesome.com/plugin/vim-workspace
@@ -203,9 +208,8 @@ call plug#begin()
 
         au VimEnter * lua vim.o.background = "dark"
 
-        au VimEnter * lua require("vscode").setup({
-  \
-  \     local c = require("vscode.colors").get_colors()
+        au VimEnter * lua local c = require("vscode.colors").get_colors();
+  \     require("vscode").setup({
   \
   \     transparent = true,
         \
@@ -327,9 +331,10 @@ call plug#begin()
       let g:jedi#use_splits_not_buffers = "left"
       let g:jedi#environment_path = "/usr/bin/python3"
 
-    " Copilot configuration
+    " Copilot configuration (disabled - Plug 'github/copilot.vim' above is
+    " commented out too; re-enable both together if you want it back)
 
-      au VimEnter * Copilot setup
+      " au VimEnter * Copilot setup
 
     " startup
 
