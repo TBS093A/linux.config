@@ -372,7 +372,7 @@ _welcome_banner() {
             else
                 ports_raw+=("${pproto} ${pport}")
             fi
-        done < <(ss -tulnH 2>/dev/null)
+        done < <(ss -tulnHp 2>/dev/null)
 
         if (( ${#ports_raw[@]} > 0 )); then
             local ports_sorted; ports_sorted=$(printf '%s\n' "${ports_raw[@]}" | sort -k2,2n)
