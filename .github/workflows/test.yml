@@ -1,0 +1,15 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  welcome-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
+      - name: welcome.sh smoke test
+        run: bash test/welcome-smoke.sh
