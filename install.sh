@@ -12,11 +12,24 @@
 #   ./install.sh --local      full/desktop profile: everything, incl. neovim
 #   ./install.sh --server     server profile: skips neovim and other
 #                             desktop-leaning bits; asks whether to install
-#                             Docker too
+#                             Docker too, and interactively for the prompt's
+#                             CLOUD_PROVIDER/SERVER_TYPE badges (see below)
 #   ./install.sh --system     also link sshd_config + the MOTD banner (sudo,
 #                             see the warning make.symlinks.sh --system prints)
 #                             - combine with either profile, e.g.
 #                             ./install.sh --server --system
+#
+# --server's prompt badges (CLOUD_PROVIDER/SERVER_TYPE, see
+# zsh.config/lambda-00x097.zsh-theme) are normally asked interactively -
+# pass them up front instead for a non-interactive/scripted run:
+#   ./install.sh --server --cloud-provider=HETZNER --server-type=PROD
+#   ./install.sh --server --cloud-provider=homelab --cloud-provider-color=213 \
+#                --server-type=staging --server-type-color=51
+# --cloud-provider-color/--server-type-color are 256-color numbers (0-255)
+# for a custom label - AWS/OVH/AZURE/GCP/HETZNER and DEV/PROD have a fixed
+# color already, this only applies to anything else; run `spectrum_ls` in
+# zsh to preview the scale and pick a number. Passing any of the 4 flags
+# skips that badge's prompt even on an interactive terminal.
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -31,11 +44,19 @@ _sudo() {
 # --- flags ---
 PROFILE="local"
 DO_SYSTEM=0
+CLOUD_PROVIDER_ARG=""
+CLOUD_PROVIDER_COLOR_ARG=""
+SERVER_TYPE_ARG=""
+SERVER_TYPE_COLOR_ARG=""
 for arg in "$@"; do
     case "$arg" in
         --server) PROFILE="server" ;;
         --local)  PROFILE="local" ;;
         --system) DO_SYSTEM=1 ;;
+        --cloud-provider=*)       CLOUD_PROVIDER_ARG="${arg#*=}" ;;
+        --cloud-provider-color=*) CLOUD_PROVIDER_COLOR_ARG="${arg#*=}" ;;
+        --server-type=*)          SERVER_TYPE_ARG="${arg#*=}" ;;
+        --server-type-color=*)    SERVER_TYPE_COLOR_ARG="${arg#*=}" ;;
         *) warn "Unknown flag: $arg (ignored)" ;;
     esac
 done
@@ -175,7 +196,16 @@ if [[ $PROFILE == server ]]; then
     # reasoning as SERVER_TYPE below - a personal/local box doesn't need it.
     CLOUD_PROVIDER=""
     CLOUD_PROVIDER_COLOR=""
-    if [[ -t 0 ]]; then
+    if [[ -n $CLOUD_PROVIDER_ARG ]]; then
+        CLOUD_PROVIDER=$CLOUD_PROVIDER_ARG
+        if [[ -n $CLOUD_PROVIDER_COLOR_ARG ]]; then
+            if [[ $CLOUD_PROVIDER_COLOR_ARG =~ ^[0-9]+$ && $CLOUD_PROVIDER_COLOR_ARG -le 255 ]]; then
+                CLOUD_PROVIDER_COLOR=$CLOUD_PROVIDER_COLOR_ARG
+            else
+                warn "--cloud-provider-color must be 0-255 (run 'spectrum_ls' in zsh to preview) - ignoring '$CLOUD_PROVIDER_COLOR_ARG', badge will use plain gray"
+            fi
+        fi
+    elif [[ -t 0 ]]; then
         echo "Cloud/host provider for the prompt badge?"
         select cp in AWS OVH AZURE GCP HETZNER CUSTOM; do
             case "$cp" in
@@ -194,7 +224,7 @@ if [[ $PROFILE == server ]]; then
             esac
         done
     else
-        warn "Non-interactive shell - skipping the cloud-provider prompt (set CLOUD_PROVIDER yourself in zsh.config/.zshrc.local if you want the badge)"
+        warn "Non-interactive shell - skipping the cloud-provider prompt (pass --cloud-provider=NAME up front - see this script's usage header - or set CLOUD_PROVIDER yourself in zsh.config/.zshrc.local later)"
     fi
     if [[ -n $CLOUD_PROVIDER ]]; then
         set_zshrc_local_var CLOUD_PROVIDER "$CLOUD_PROVIDER"
@@ -202,23 +232,45 @@ if [[ $PROFILE == server ]]; then
         log "Prompt badge set: CLOUD_PROVIDER=$CLOUD_PROVIDER${CLOUD_PROVIDER_COLOR:+ (color $CLOUD_PROVIDER_COLOR)} (zsh.config/.zshrc.local)"
     fi
 
-    # SERVER_TYPE drives the [DEV]/[PROD]/custom badge right after it.
+    # SERVER_TYPE drives the [DEV]/[PROD]/custom badge right after it - a
+    # custom label can get its own color too (SERVER_TYPE_COLOR), same
+    # idea as CLOUD_PROVIDER_COLOR above.
     SERVER_TYPE=""
-    if [[ -t 0 ]]; then
+    SERVER_TYPE_COLOR=""
+    if [[ -n $SERVER_TYPE_ARG ]]; then
+        SERVER_TYPE=$SERVER_TYPE_ARG
+        if [[ -n $SERVER_TYPE_COLOR_ARG ]]; then
+            if [[ $SERVER_TYPE_COLOR_ARG =~ ^[0-9]+$ && $SERVER_TYPE_COLOR_ARG -le 255 ]]; then
+                SERVER_TYPE_COLOR=$SERVER_TYPE_COLOR_ARG
+            else
+                warn "--server-type-color must be 0-255 (run 'spectrum_ls' in zsh to preview) - ignoring '$SERVER_TYPE_COLOR_ARG', badge will use the default yellow"
+            fi
+        fi
+    elif [[ -t 0 ]]; then
         echo "Server type for the prompt badge?"
         select st in DEV PROD CUSTOM; do
             case "$st" in
                 DEV|PROD) SERVER_TYPE=$st; break ;;
-                CUSTOM)   read -r -p "Custom label: " SERVER_TYPE; break ;;
-                *)        echo "Pick 1-3" ;;
+                CUSTOM)
+                    read -r -p "Custom label: " SERVER_TYPE
+                    while true; do
+                        read -r -p "Color (256-color number 0-255, blank for the default yellow - 'spectrum_ls' in zsh previews the scale): " SERVER_TYPE_COLOR
+                        [[ -z $SERVER_TYPE_COLOR ]] && break
+                        [[ $SERVER_TYPE_COLOR =~ ^[0-9]+$ && $SERVER_TYPE_COLOR -le 255 ]] && break
+                        echo "Enter a number 0-255, or leave blank"
+                    done
+                    break
+                    ;;
+                *) echo "Pick 1-3" ;;
             esac
         done
     else
-        warn "Non-interactive shell - skipping the server-type prompt (set SERVER_TYPE yourself in zsh.config/.zshrc.local if you want the prompt badge)"
+        warn "Non-interactive shell - skipping the server-type prompt (pass --server-type=NAME up front - see this script's usage header - or set SERVER_TYPE yourself in zsh.config/.zshrc.local later)"
     fi
     if [[ -n $SERVER_TYPE ]]; then
         set_zshrc_local_var SERVER_TYPE "$SERVER_TYPE"
-        log "Prompt badge set: SERVER_TYPE=$SERVER_TYPE (zsh.config/.zshrc.local)"
+        [[ -n $SERVER_TYPE_COLOR ]] && set_zshrc_local_var SERVER_TYPE_COLOR "$SERVER_TYPE_COLOR"
+        log "Prompt badge set: SERVER_TYPE=$SERVER_TYPE${SERVER_TYPE_COLOR:+ (color $SERVER_TYPE_COLOR)} (zsh.config/.zshrc.local)"
     fi
 fi
 

@@ -32,13 +32,18 @@ _cloud_provider_segment() {
 # Server-type badge (line 1, between the corner glyph and user@host) - set
 # by `install.sh --server` into zsh.config/.zshrc.local as $SERVER_TYPE.
 # Empty/unset means nothing shown, same "only if relevant" rule as the
-# git/K8s segments below.
+# git/K8s segments below. A custom (non-DEV/PROD) label reads
+# $SERVER_TYPE_COLOR if set (also asked for by install.sh's CUSTOM
+# option), same idea as $CLOUD_PROVIDER_COLOR above - falls back to the
+# plain yellow "custom" default if unset, not gray, so a SERVER_TYPE set
+# before this existed keeps looking exactly the same.
 _server_type_segment() {
     [[ -n ${SERVER_TYPE:-} ]] || return
     local color=$YELLOW bold=""
     case "${(U)SERVER_TYPE}" in
         PROD) color=$RED; bold="%B" ;;
         DEV)  color=$GREEN ;;
+        *)    [[ -n ${SERVER_TYPE_COLOR:-} ]] && color=$SERVER_TYPE_COLOR ;;
     esac
     # %b isn't a targeted un-bold in zsh - it's a full attribute reset (sgr0),
     # so without restoring %B here it silently kills the ambient bold that

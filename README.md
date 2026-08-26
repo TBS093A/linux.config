@@ -43,6 +43,11 @@ cd ~/linux.config
 ./install.sh --system     # combine with either: also link sshd_config + the MOTD banner (sudo)
 ```
 
+`--server` also asks a couple of interactive questions for the prompt's
+badges (`$CLOUD_PROVIDER`/`$SERVER_TYPE`, see "The prompt" below) - pass
+`--cloud-provider=`/`--server-type=` (and their `-color=` counterparts) up
+front instead for a non-interactive/scripted install.
+
 Each package installs independently, so one missing/renamed package name
 on a given distro doesn't abort the run - it just warns and moves on.
 `install.sh` is also safe to re-run (every step checks whether it already
@@ -205,14 +210,21 @@ useless - no separate `--gpu` flag or detection to maintain).
   - Two badges between the corner glyph and `user@host`, in order:
     `[PROVIDER]` then `[TYPE]`. Both are set once by `install.sh
     --server`'s interactive prompts (stored in `zsh.config/.zshrc.local`,
-    see `.zshrc.local.example`), editable by hand any time after.
+    see `.zshrc.local.example`), editable by hand any time after - or
+    non-interactively, for a scripted install:
+    ```
+    ./install.sh --server --cloud-provider=HETZNER --server-type=PROD
+    ./install.sh --server --cloud-provider=homelab --cloud-provider-color=213 \
+                 --server-type=staging --server-type-color=51
+    ```
     - `$CLOUD_PROVIDER` - `AWS`/`OVH`/`AZURE`/`GCP`/`HETZNER` each get a
       fixed, brand-ish color baked into the theme; anything else is a
       custom label, colored by `$CLOUD_PROVIDER_COLOR` (a 256-color
       number - `spectrum_ls` in zsh previews the scale) or plain gray if
       that's left unset.
     - `$SERVER_TYPE` - `DEV` green, `PROD` bold red, anything else (a
-      custom label) yellow.
+      custom label) yellow by default, or `$SERVER_TYPE_COLOR` (same idea
+      as `$CLOUD_PROVIDER_COLOR`) for a different shade.
   - A 3rd line, only drawn inside a git repo or a kube-configured
     directory: git branch + ahead/behind + modified/untracked counts
     first (`main ⇡2 ⇣1 ✚3 ?2`), then the current K8s context - bold red

@@ -15,8 +15,11 @@
 # export CLOUD_PROVIDER_COLOR="213"
 #
 # SERVER_TYPE: DEV green, PROD bold red, anything else (a custom label)
-# yellow.
+# yellow by default - or SERVER_TYPE_COLOR (same 256-color number idea as
+# CLOUD_PROVIDER_COLOR) for a different shade.
 # export SERVER_TYPE="PROD"
+# export SERVER_TYPE="staging"
+# export SERVER_TYPE_COLOR="51"
 
 # Per-host SSH shortcuts (ssh node000, ...) go in ~/.ssh/config as Host
 # blocks instead of aliases here - see README's "Keeping secrets out of a
