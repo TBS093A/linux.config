@@ -79,6 +79,16 @@ instead of the tracked one:
   automatically by `.zshrc` if present.
 - `vpn.config/vpns.local` (see `vpns.local.example`) - appended to
   `VPNS_LIST` automatically by `connect.sh` if present.
+- Per-host SSH shortcuts (`ssh node000` instead of typing out a user/IP/
+  key every time) go in `~/.ssh/config` as `Host` blocks - not this repo
+  at all, tracked or otherwise, and not a `.zshrc.local` alias either:
+
+  ```
+  Host node000
+      HostName 203.0.113.10
+      User root
+      IdentityFile ~/.ssh/hetzner_accesses
+  ```
 
 ## Day-to-day extras
 
