@@ -75,7 +75,11 @@ _k8s_segment() {
     # font needed) if this renders as a tofu box on your terminal.
     local icon=$'\U000f10fe'
     if [[ ${ctx:l} == *prod* ]]; then
-        printf '%%F{%s}%%B%s %s%%b%%f' "$RED" "$icon" "$ctx"
+        # same %b-is-a-full-reset gotcha as _server_type_segment - restore
+        # %B after or this is the last thing on the line and everything
+        # past it (nothing, currently, but the next thing added here later)
+        # loses the ambient bold silently.
+        printf '%%F{%s}%%B%s %s%%b%%f%%B' "$RED" "$icon" "$ctx"
     else
         printf '%%F{%s}%s %s%%f' "$GRAY" "$icon" "$ctx"
     fi
@@ -100,7 +104,7 @@ prompt() {
         mid+=$'\n'
     fi
 
-    printf '%s\n%s╰ %%F{%s}λ%%f' "$line1" "$mid" "$lambda_color"
+    printf '%s\n%s%%F{%s}╰ %%F{%s}λ%%f' "$line1" "$mid" "$GRAY" "$lambda_color"
 }
 
 # returns 👾 if there are errors, nothing otherwise
