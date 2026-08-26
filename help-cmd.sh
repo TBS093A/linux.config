@@ -25,6 +25,17 @@ _have() { command -v "$1" >/dev/null 2>&1; }
 
 printf '%s%shelp-cmd%s %s- what you can run on this box%s\n' "$BOLD" "$ACCENT" "$RESET" "$DIM" "$RESET"
 
+_section "Prompt (zsh.config/lambda-00x097.zsh-theme)"
+_row "╭ [TYPE] user@host:path" "line 1 - [TYPE] only shows if \$SERVER_TYPE is set"
+_row "  [DEV]"                  "green"
+_row "  [PROD]"                 "bold red - hard to miss, this is production"
+_row "  [anything else]"        "yellow - a custom label (install.sh --server, option 3)"
+_row "3rd line: git + K8s"      "only drawn when at least one has something to show"
+_row "  branch ⇡N ⇣N ✚N ?N"    "commits ahead/behind upstream, modified, untracked (0s hidden)"
+_row "  K8s context"            "read from \$KUBECONFIG / ~/.kube/config - no kubectl call"
+_row "  bold red context"       "context name contains \"prod\""
+_row "╰ λ"                      "always there - this is where you actually type"
+
 _section "Navigation"
 if _have zoxide; then
     _row "z <partial-path>"   "jump to a frecency-ranked directory match"
@@ -74,6 +85,7 @@ _row "prefix + r"             "reload tmux.conf"
 _row "copy-mode: v / y"       "vi-style: start selection / copy and exit"
 _row "mouse"                  "click to select pane, drag to resize, scroll for copy-mode"
 _row "prefix + Ctrl-s / Ctrl-r" "tmux-resurrect: save / restore panes+layout"
+_row "prefix + I"             "TPM: (re)install tmux-resurrect/continuum/yank"
 _row "status-right"           "CPU/RAM always shown, GPU appended if present (status-sys.sh)"
 
 if _have nvim; then
