@@ -88,7 +88,7 @@ restore() {
 
         if [[ -n $pcmd ]]; then
             case "$pcmd" in
-                *sh|*csh) ;;   # a shell - leave it as a fresh interactive shell in $pdir
+                *sh) ;;   # a shell (bash/zsh/fish/csh/...) - leave it as a fresh one in $pdir
                 *) tmux send-keys -t "${key}.${pidx}" "$pcmd" Enter ;;
             esac
         fi

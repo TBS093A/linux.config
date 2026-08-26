@@ -57,24 +57,31 @@ else
 fi
 _row "ex <archive>"           "extract tar/zip/gz/bz2/rar/7z - whatever it is (.bashrc)"
 if _have yazi; then
-    _row "y"                  "yazi file manager, cd's the shell on quit"
+    _row "y"                  "yazi file manager, cd's the shell to where you quit"
+    _row "  hjkl / Enter"     "move around / open (h also goes up a directory)"
+    _row "  q"                "quit - back to the shell, now in that directory"
 fi
 
 _section "Search"
 if _have rg; then
     _row "rg <pattern>"       "ripgrep - fast recursive grep, respects .gitignore"
+    _row "rg -i <pattern>"    "case-insensitive; -l for filenames only, -A/-B/-C N for context"
 fi
 if _have fd || _have fdfind; then
     _row "fd <pattern>"       "fast recursive find (fdfind, aliased, on Debian/Ubuntu)"
+    _row "fd -e yaml"         "filter by extension; -t f / -t d for files-only / dirs-only"
+    _row "fd -t f | fzf"      "pipe into fzf for an interactive picker"
 fi
 if ! _have rg && ! (_have fd || _have fdfind); then
     _row "grep -R / find"     "ripgrep/fd not installed - plain grep/find for now"
 fi
 if _have jq; then
-    _row "jq <filter>"        "JSON query/pretty-print"
+    _row "jq <filter>"        "JSON query/pretty-print, e.g. jq '.status.phase'"
+    _row "kubectl ... -o json | jq" "pretty-print/filter API output"
 fi
 if _have yq; then
-    _row "yq <filter>"        "same idea as jq, for YAML"
+    _row "yq <filter>"        "same filter syntax as jq, for YAML"
+    _row "yq '.spec.template...image'" "e.g. read an image tag out of a deployment.yaml"
 fi
 
 _section "Fuzzy search (fzf)"
@@ -162,9 +169,11 @@ _row "openconnect"            "installed for vpn.config/connect.sh (SSL VPN)"
 _row "wireguard-tools"        "installed for the vpn-00x097-* aliases (wg-quick)"
 if _have btop; then
     _row "btop"                "interactive CPU/RAM/process monitor"
+    _row "  q"                  "quit"
 fi
 if _have docker; then
     _row "docker"              "installed, no alias - plain docker (install.sh --server, optional)"
+    _row "docker ps"            "running containers - also shown in welcome.sh's banner"
 fi
 if _have fc-list && fc-list 2>/dev/null | grep -qi "nerd font"; then
     _row "Nerd Font symbols"  "installed - eza's icons should render locally"
@@ -172,6 +181,12 @@ else
     _row "Nerd Font symbols"  "not found here - eza --icons needs one (see README)"
 fi
 _row "lint-shell"             "shellcheck + bash/zsh -n on every script (what CI runs)"
+if _have shellcheck; then
+    _row "shellcheck <file>"  "run it directly on one script (lint-shell runs it on all of them)"
+fi
+if _have shfmt; then
+    _row "shfmt -d <file>"    "show formatting diff; shfmt -w <file> to apply it"
+fi
 
 _section "git ($HOME/.gitconfig aliases)"
 _row "git lg / lg0 / lg1"     "graph log, plain / with author+date"
@@ -181,9 +196,12 @@ _row "git psh / pll"          "push / pull"
 _row "git rsft / rhrd <n>"    "reset --soft / --hard"
 if _have delta; then
     _row "git diff / show"    "rendered through delta (line numbers, navigate mode)"
+    _row "  n / N"             "in a delta pager: jump to the next/previous file in the diff"
 fi
 if _have lazygit; then
     _row "lg"                  "lazygit - stage/unstage, rebase, stash, browse commits"
+    _row "  space / c / P"     "stage/unstage the selected item / commit / push"
+    _row "  ?"                  "lazygit's own keybind cheat sheet"
 fi
 
 _section "Other"
@@ -196,12 +214,16 @@ _row "add-tbs093a-git-id"     "ssh-agent + ssh-add ~/.ssh/git_accesses"
 _row "k8s"                    "= kubectl"
 if _have k9s; then
     _row "k9"                  "= k9s - interactive K8s TUI"
+    _row "  :pods / :svc / :ns" "switch resource view (type the colon command, Enter)"
+    _row "  d / l / :q"        "describe / logs for the selected resource / quit"
 fi
 if _have nvtop; then
     _row "gpu"                 "= nvtop - interactive GPU monitor"
+    _row "  q"                  "quit"
 fi
 if _have mise; then
     _row "mise use <tool>@<ver>" "pin a per-project tool version (opt-in .mise.toml, like direnv)"
+    _row "mise install"        "install every version pinned in the current .mise.toml"
 fi
 _row "install.sh --local"     "full/desktop profile, incl. neovim (default)"
 _row "install.sh --server"    "server profile, skips neovim, offers Docker"

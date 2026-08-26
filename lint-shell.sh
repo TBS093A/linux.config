@@ -15,7 +15,7 @@
 set -uo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-cd "$DOTFILES_DIR"
+cd "$DOTFILES_DIR" || exit 1
 
 BASH_FILES=(
     install.sh
