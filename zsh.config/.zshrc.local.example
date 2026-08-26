@@ -9,14 +9,18 @@
 #
 # CLOUD_PROVIDER: AWS/OVH/AZURE/GCP/HETZNER get a fixed color; anything
 # else is a custom label, colored by CLOUD_PROVIDER_COLOR (a 256-color
-# number, 'spectrum_ls' in zsh previews the scale) or plain gray if unset.
+# number, 'spectrum_ls' in zsh previews the scale). install.sh's prompt
+# (or --cloud-provider=/--cloud-provider-color=) picks a random one for a
+# custom label if you don't give it a color - editing this file by hand
+# without setting one falls back to plain gray instead, since there's
+# nothing to randomize with here.
 # export CLOUD_PROVIDER="HETZNER"
 # export CLOUD_PROVIDER="homelab"
 # export CLOUD_PROVIDER_COLOR="213"
 #
 # SERVER_TYPE: DEV green, PROD bold red, anything else (a custom label)
-# yellow by default - or SERVER_TYPE_COLOR (same 256-color number idea as
-# CLOUD_PROVIDER_COLOR) for a different shade.
+# gets SERVER_TYPE_COLOR (same idea as CLOUD_PROVIDER_COLOR - randomized
+# by install.sh if not given, plain yellow as the by-hand fallback).
 # export SERVER_TYPE="PROD"
 # export SERVER_TYPE="staging"
 # export SERVER_TYPE_COLOR="51"

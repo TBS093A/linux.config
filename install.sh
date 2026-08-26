@@ -19,17 +19,26 @@
 #                             - combine with either profile, e.g.
 #                             ./install.sh --server --system
 #
-# --server's prompt badges (CLOUD_PROVIDER/SERVER_TYPE, see
-# zsh.config/lambda-00x097.zsh-theme) are normally asked interactively -
-# pass them up front instead for a non-interactive/scripted run:
-#   ./install.sh --server --cloud-provider=HETZNER --server-type=PROD
-#   ./install.sh --server --cloud-provider=homelab --cloud-provider-color=213 \
+# Every question this script would otherwise ask can be answered up front
+# with a flag instead, for a fully non-interactive/scripted run - none of
+# these need a real terminal:
+#   ./install.sh --server --docker --neovim \
+#                --cloud-provider=HETZNER --server-type=PROD
+#   ./install.sh --server --no-docker --no-neovim \
+#                --cloud-provider=homelab --cloud-provider-color=213 \
 #                --server-type=staging --server-type-color=51
-# --cloud-provider-color/--server-type-color are 256-color numbers (0-255)
-# for a custom label - AWS/OVH/AZURE/GCP/HETZNER and DEV/PROD have a fixed
-# color already, this only applies to anything else; run `spectrum_ls` in
-# zsh to preview the scale and pick a number. Passing any of the 4 flags
-# skips that badge's prompt even on an interactive terminal.
+# --docker/--no-docker force-install/skip Docker on --server (normally a
+# y/N prompt there; --local never installs it regardless).
+# --neovim/--no-neovim force-install/skip neovim on EITHER profile
+# (normally on for --local, off for --server - no prompt either way, just
+# a default this overrides).
+# --cloud-provider=/--server-type= skip that badge's prompt outright, and
+# --cloud-provider-color=/--server-type-color= (256-color numbers, 0-255 -
+# run `spectrum_ls` in zsh to preview the scale) skip its color prompt too
+# - AWS/OVH/AZURE/GCP/HETZNER and DEV/PROD have a fixed color already, the
+# -color flags only matter for anything else. A custom label with no color
+# given at all, by flag or interactively left blank, gets a random one
+# instead (picked once here, not by the theme on every prompt render).
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
@@ -48,11 +57,17 @@ CLOUD_PROVIDER_ARG=""
 CLOUD_PROVIDER_COLOR_ARG=""
 SERVER_TYPE_ARG=""
 SERVER_TYPE_COLOR_ARG=""
+DOCKER_ARG=""   # "" = ask (--server) / never (--local), "1"/"0" = force install/skip
+NEOVIM_ARG=""   # "" = profile default (on for --local, off for --server), "1"/"0" = force
 for arg in "$@"; do
     case "$arg" in
         --server) PROFILE="server" ;;
         --local)  PROFILE="local" ;;
         --system) DO_SYSTEM=1 ;;
+        --docker)    DOCKER_ARG=1 ;;
+        --no-docker) DOCKER_ARG=0 ;;
+        --neovim)    NEOVIM_ARG=1 ;;
+        --no-neovim) NEOVIM_ARG=0 ;;
         --cloud-provider=*)       CLOUD_PROVIDER_ARG="${arg#*=}" ;;
         --cloud-provider-color=*) CLOUD_PROVIDER_COLOR_ARG="${arg#*=}" ;;
         --server-type=*)          SERVER_TYPE_ARG="${arg#*=}" ;;
@@ -130,8 +145,18 @@ fi
 
 BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat \
     "$(delta_pkg)" yazi ripgrep "$(fd_pkg)" jq yq lazygit btop k9s nvtop)
+
+# neovim: --local profile default, --server skips it - --neovim/--no-neovim
+# overrides either way, so this decision doesn't need a --local/--server
+# switch specifically either if you're scripting the whole install
+install_neovim=0
+[[ $PROFILE == local ]] && install_neovim=1
+[[ $NEOVIM_ARG == 1 ]] && install_neovim=1
+[[ $NEOVIM_ARG == 0 ]] && install_neovim=0
+(( install_neovim )) && BASE_PKGS+=(neovim)
+
 if [[ $PROFILE == local ]]; then
-    BASE_PKGS+=(neovim shellcheck shfmt)
+    BASE_PKGS+=(shellcheck shfmt)
 fi
 pkg_install "${BASE_PKGS[@]}"
 
@@ -177,13 +202,21 @@ set_zshrc_local_var() {
     fi
 }
 
+# 21-230 stays inside the 6x6x6 RGB cube (16-231), skipping the 16 basic
+# ANSI slots (0-15, incl. true black/white) and the 232-255 grayscale ramp
+# (too close to the house gray/244, or just washed out) - a broad, mostly
+# legible range for a badge that's supposed to stand out.
+random_badge_color() { echo $(( (RANDOM % 210) + 21 )); }
+
 if [[ $PROFILE == server ]]; then
     install_docker=0
-    if [[ -t 0 ]]; then
+    if [[ -n $DOCKER_ARG ]]; then
+        install_docker=$DOCKER_ARG
+    elif [[ -t 0 ]]; then
         read -r -p "Install Docker too? [y/N] " reply
         [[ $reply =~ ^[Yy]([Ee][Ss])?$ ]] && install_docker=1
     else
-        warn "Non-interactive shell - skipping the Docker prompt (pass it up front if you want it: sudo <pkgmgr> install $(docker_pkg))"
+        warn "Non-interactive shell - skipping the Docker prompt (pass --docker or --no-docker up front, or sudo <pkgmgr> install $(docker_pkg) yourself later)"
     fi
     (( install_docker )) && pkg_install "$(docker_pkg)"
 
@@ -202,7 +235,7 @@ if [[ $PROFILE == server ]]; then
             if [[ $CLOUD_PROVIDER_COLOR_ARG =~ ^[0-9]+$ && $CLOUD_PROVIDER_COLOR_ARG -le 255 ]]; then
                 CLOUD_PROVIDER_COLOR=$CLOUD_PROVIDER_COLOR_ARG
             else
-                warn "--cloud-provider-color must be 0-255 (run 'spectrum_ls' in zsh to preview) - ignoring '$CLOUD_PROVIDER_COLOR_ARG', badge will use plain gray"
+                warn "--cloud-provider-color must be 0-255 (run 'spectrum_ls' in zsh to preview) - ignoring '$CLOUD_PROVIDER_COLOR_ARG', picking one at random instead"
             fi
         fi
     elif [[ -t 0 ]]; then
@@ -213,7 +246,7 @@ if [[ $PROFILE == server ]]; then
                 CUSTOM)
                     read -r -p "Custom label: " CLOUD_PROVIDER
                     while true; do
-                        read -r -p "Color (256-color number 0-255, blank for house gray - 'spectrum_ls' in zsh previews the scale): " CLOUD_PROVIDER_COLOR
+                        read -r -p "Color (256-color number 0-255, blank to pick one at random - 'spectrum_ls' in zsh previews the scale): " CLOUD_PROVIDER_COLOR
                         [[ -z $CLOUD_PROVIDER_COLOR ]] && break
                         [[ $CLOUD_PROVIDER_COLOR =~ ^[0-9]+$ && $CLOUD_PROVIDER_COLOR -le 255 ]] && break
                         echo "Enter a number 0-255, or leave blank"
@@ -227,6 +260,17 @@ if [[ $PROFILE == server ]]; then
         warn "Non-interactive shell - skipping the cloud-provider prompt (pass --cloud-provider=NAME up front - see this script's usage header - or set CLOUD_PROVIDER yourself in zsh.config/.zshrc.local later)"
     fi
     if [[ -n $CLOUD_PROVIDER ]]; then
+        # a custom (non-AWS/OVH/AZURE/GCP/HETZNER) label with no color given
+        # either way (flag or prompt) gets a random one, picked once here
+        # and persisted - not left to the theme to fall back on every
+        # prompt render, which would make the badge flicker between colors
+        case "${CLOUD_PROVIDER^^}" in
+            AWS|OVH|AZURE|GCP|HETZNER) ;;   # fixed color already baked into the theme
+            *) if [[ -z $CLOUD_PROVIDER_COLOR ]]; then
+                   CLOUD_PROVIDER_COLOR=$(random_badge_color)
+                   log "No color given for custom CLOUD_PROVIDER=$CLOUD_PROVIDER - picked one at random: $CLOUD_PROVIDER_COLOR"
+               fi ;;
+        esac
         set_zshrc_local_var CLOUD_PROVIDER "$CLOUD_PROVIDER"
         [[ -n $CLOUD_PROVIDER_COLOR ]] && set_zshrc_local_var CLOUD_PROVIDER_COLOR "$CLOUD_PROVIDER_COLOR"
         log "Prompt badge set: CLOUD_PROVIDER=$CLOUD_PROVIDER${CLOUD_PROVIDER_COLOR:+ (color $CLOUD_PROVIDER_COLOR)} (zsh.config/.zshrc.local)"
@@ -243,7 +287,7 @@ if [[ $PROFILE == server ]]; then
             if [[ $SERVER_TYPE_COLOR_ARG =~ ^[0-9]+$ && $SERVER_TYPE_COLOR_ARG -le 255 ]]; then
                 SERVER_TYPE_COLOR=$SERVER_TYPE_COLOR_ARG
             else
-                warn "--server-type-color must be 0-255 (run 'spectrum_ls' in zsh to preview) - ignoring '$SERVER_TYPE_COLOR_ARG', badge will use the default yellow"
+                warn "--server-type-color must be 0-255 (run 'spectrum_ls' in zsh to preview) - ignoring '$SERVER_TYPE_COLOR_ARG', picking one at random instead"
             fi
         fi
     elif [[ -t 0 ]]; then
@@ -254,7 +298,7 @@ if [[ $PROFILE == server ]]; then
                 CUSTOM)
                     read -r -p "Custom label: " SERVER_TYPE
                     while true; do
-                        read -r -p "Color (256-color number 0-255, blank for the default yellow - 'spectrum_ls' in zsh previews the scale): " SERVER_TYPE_COLOR
+                        read -r -p "Color (256-color number 0-255, blank to pick one at random - 'spectrum_ls' in zsh previews the scale): " SERVER_TYPE_COLOR
                         [[ -z $SERVER_TYPE_COLOR ]] && break
                         [[ $SERVER_TYPE_COLOR =~ ^[0-9]+$ && $SERVER_TYPE_COLOR -le 255 ]] && break
                         echo "Enter a number 0-255, or leave blank"
@@ -268,6 +312,14 @@ if [[ $PROFILE == server ]]; then
         warn "Non-interactive shell - skipping the server-type prompt (pass --server-type=NAME up front - see this script's usage header - or set SERVER_TYPE yourself in zsh.config/.zshrc.local later)"
     fi
     if [[ -n $SERVER_TYPE ]]; then
+        # same random-color-if-none-given deal as CLOUD_PROVIDER above
+        case "${SERVER_TYPE^^}" in
+            DEV|PROD) ;;   # fixed color already baked into the theme
+            *) if [[ -z $SERVER_TYPE_COLOR ]]; then
+                   SERVER_TYPE_COLOR=$(random_badge_color)
+                   log "No color given for custom SERVER_TYPE=$SERVER_TYPE - picked one at random: $SERVER_TYPE_COLOR"
+               fi ;;
+        esac
         set_zshrc_local_var SERVER_TYPE "$SERVER_TYPE"
         [[ -n $SERVER_TYPE_COLOR ]] && set_zshrc_local_var SERVER_TYPE_COLOR "$SERVER_TYPE_COLOR"
         log "Prompt badge set: SERVER_TYPE=$SERVER_TYPE${SERVER_TYPE_COLOR:+ (color $SERVER_TYPE_COLOR)} (zsh.config/.zshrc.local)"
@@ -317,7 +369,10 @@ if command -v tmux >/dev/null 2>&1; then
     fi
 fi
 
-if [[ $PROFILE == local ]] && command -v nvim >/dev/null 2>&1; then
+if command -v nvim >/dev/null 2>&1; then
+    # gated on nvim actually being present, not the profile/flag that got
+    # it there - --neovim installs it under --server too now, and this
+    # keeps its plugins bootstrapped either way
     mkdir -p "$HOME/.cache/nvim"   # barbar.nvim writes its pin state here
     log "Bootstrapping nvim: fetching vim-plug"
     # init.vim downloads vim-plug itself on first launch if it's missing, but
