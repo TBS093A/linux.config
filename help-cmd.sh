@@ -94,15 +94,15 @@ fi
 
 _section "tmux"
 _row "prefix"                 "Ctrl-b - press, RELEASE, then press the key below"
-_row "tmux-session"           "save/restore the current tmux session (script)"
+_row "tmux-session save"      "dump every pane's cwd/command + each window's layout"
+_row "tmux-session restore"   "rebuild it - panes, layout, active window/pane"
 _row "prefix + | / -"         "split pane vertically / horizontally"
 _row "prefix + h/j/k/l"       "move between panes (vim-style)"
 _row "prefix + H/J/K/L"       "resize the current pane (vim-style)"
 _row "prefix + r"             "reload tmux.conf"
 _row "copy-mode: v / y"       "vi-style: start selection / copy and exit"
 _row "mouse"                  "click to select pane, drag to resize, scroll for copy-mode"
-_row "prefix + Ctrl-s / Ctrl-r" "tmux-resurrect: save / restore panes+layout"
-_row "prefix + I"             "TPM: (re)install tmux-resurrect/continuum/yank"
+_row "prefix + I"             "TPM: (re)install tmux-yank"
 _row "status-right"           "CPU/RAM always shown, GPU appended if present (status-sys.sh)"
 
 if _have nvim; then
@@ -190,6 +190,15 @@ fi
 _row "vpn-00x097-connect"     "wg-quick up wg0-00x097"
 _row "vpn-00x097-disconnect"  "wg-quick down wg0-00x097"
 _row "k8s"                    "= kubectl"
+if _have k9s; then
+    _row "k9"                  "= k9s - interactive K8s TUI"
+fi
+if _have nvtop; then
+    _row "gpu"                 "= nvtop - interactive GPU monitor"
+fi
+if _have mise; then
+    _row "mise use <tool>@<ver>" "pin a per-project tool version (opt-in .mise.toml, like direnv)"
+fi
 _row "install.sh --local"     "full/desktop profile, incl. neovim (default)"
 _row "install.sh --server"    "server profile, skips neovim, offers Docker"
 _row "install.sh --system"    "also link sshd_config + the MOTD banner (sudo)"

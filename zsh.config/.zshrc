@@ -126,6 +126,13 @@ command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 # direnv: per-directory env vars from .envrc, opted in with `direnv allow`
 command -v direnv >/dev/null 2>&1 && eval "$(direnv hook zsh)"
 
+# mise: per-project tool versions (python/node/terraform/kubectl/...),
+# opted in per project with a .mise.toml the same way direnv's .envrc is.
+# install.sh's own installer puts the binary in ~/.local/bin, which isn't
+# guaranteed to already be on PATH on every distro.
+export PATH="$HOME/.local/bin:$PATH"
+command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
+
 # eza/bat: same info as ls/cat, easier to read. bat ships as `batcat` on
 # Debian/Ubuntu (name clash with another package) - alias whichever exists.
 if command -v eza >/dev/null 2>&1; then
@@ -185,6 +192,8 @@ alias lint-shell="$DOTFILES_DIR/lint-shell.sh"
 alias add-tbs093a-git-id='eval "$(ssh-agent -s)"; ssh-add ~/.ssh/git_accesses'
 
 alias k8s=kubectl
+command -v k9s >/dev/null 2>&1 && alias k9='k9s'
+command -v nvtop >/dev/null 2>&1 && alias gpu='nvtop'
 
 # Generated for envman. Do not edit.
 [ -s "$HOME/.config/envman/load.sh" ] && source "$HOME/.config/envman/load.sh"

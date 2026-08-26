@@ -14,7 +14,7 @@ zsh.config/     .zshrc, oh-my-zsh install/plugin scripts, the lambda-00x097
 git.config/     .gitconfig (aliases, commitizen, per-host TLS override for git.00x097.com)
 vim.config/     init.vim (plugins, keybindings, formatting)
 tmux.config/    tmux.conf (vim-style panes, welcome.sh-matched statusbar) +
-                tmux.session.sh - save/restore tmux sessions
+                tmux.session.sh - full session/window/pane save+restore
 vpn.config/     connect.sh / disconnect.sh wrapping openconnect, + a VPN host list
 sshd.ssh.config/ sshd_config + welcome.sh (the login banner, see below)
 test/           welcome-smoke.sh - mocks every external command welcome.sh
@@ -85,12 +85,15 @@ instead of the tracked one:
 `help-cmd` prints all of this from the shell itself (colored to match
 `welcome.sh`) - run it any time you forget what's here. `install.sh` pulls
 in `zoxide`, `direnv`, `eza`, `bat`, `delta`, `yazi`, `ripgrep`, `fd`, `jq`,
-`yq`, `lazygit`, and `btop` alongside the base packages (`--local` adds
-`shellcheck`/`shfmt` on top, for editing this repo itself); each piece
-below only activates if its tool is actually present (`command -v`
-guarded), so nothing breaks on a box where one of them failed to install -
-not every package manager carries all of these (`lazygit`/`btop` in
-particular aren't in every distro's default repos).
+`yq`, `lazygit`, `btop`, `k9s`, and `nvtop` alongside the base packages
+(`--local` adds `shellcheck`/`shfmt` on top, for editing this repo itself),
+plus `mise` via its own official installer (see below); each piece below
+only activates if its tool is actually present (`command -v` guarded), so
+nothing breaks on a box where one of them failed to install - not every
+package manager carries all of these (`lazygit`/`btop`/`k9s` in particular
+aren't in every distro's default repos), and `nvtop` is installed
+unconditionally even on a box with no GPU (it's harmless there, just
+useless - no separate `--gpu` flag or detection to maintain).
 
 - **zoxide** - `z <partial-path>` jumps to a frecency-ranked directory
   match, `zi` opens an fzf picker over ranked directories. Replaces `cd`
@@ -111,6 +114,16 @@ particular aren't in every distro's default repos).
   aliases below, not a replacement for them.
 - **btop** - `btop` for an interactive CPU/RAM/process view; the always-on
   numbers in the login banner and tmux statusbar cover the at-a-glance case.
+- **k9s / nvtop** - `k9` (= `k9s`) for an interactive Kubernetes TUI, `gpu`
+  (= `nvtop`) for interactive GPU monitoring. Both installed unconditionally
+  (see above) - `welcome.sh` already only *shows* K8s/GPU info when a
+  cluster/card is actually there, so these follow the same "harmless if
+  unused" rule rather than adding install-time flags.
+- **mise** - per-project tool version manager (python/node/terraform/
+  kubectl/...), installed via its own official installer to `~/.local/bin`
+  since it isn't reliably packaged across distros. Opt in per project with
+  a `.mise.toml`, same as `direnv`'s `.envrc` - `install.sh` only sets up
+  the binary and the shell activation hook, nothing project-specific.
 - **lint-shell** - runs the exact same checks `.github/workflows/lint.yml`
   runs in CI (`shellcheck` + `bash -n`/`zsh -n` on every script in the
   repo), locally, before you push. `shfmt`, if installed, also prints a
@@ -150,13 +163,19 @@ particular aren't in every distro's default repos).
   actually has a card - same NVIDIA/AMD dual-vendor detection as
   `welcome.sh`'s GPU meter, trimmed to one instantaneous reading.
 - **tmux plugins (TPM)** - `install.sh` bootstraps
-  [TPM](https://github.com/tmux-plugins/tpm) and headlessly installs
-  `tmux-resurrect`, `tmux-continuum` (autosaves every 15 min, autorestores
-  on tmux start - `prefix + Ctrl-s`/`Ctrl-r` to save/restore by hand), and
-  `tmux-yank`. This is a different thing from `tmux.config/tmux.session.sh`
-  below: that script is a manual/cron-friendly session+window+cwd dump,
-  while resurrect/continuum additionally restore pane *splits* and do it
-  automatically - the two aren't redundant, both stay.
+  [TPM](https://github.com/tmux-plugins/tpm) and headlessly installs just
+  `tmux-yank` (clipboard integration) - no `tmux-resurrect`/`tmux-continuum`.
+  Session/pane restore is `tmux.config/tmux.session.sh`'s own job instead
+  (see below), which covers the same ground.
+- **tmux-session** - `tmux-session save` dumps every pane in every window
+  (cwd, running command, exact split layout, which window/pane was
+  active) to `~/.tmux-session`; `tmux-session restore` rebuilds it -
+  windows that already exist are left alone, so it's safe to run on top
+  of a live session. A pane's command is relaunched by name only (no
+  args, no in-program state - an editor reopens empty); anything that's
+  just a shell is left as a fresh shell in its cwd instead of re-running
+  itself. `tmux-session save` on a cron job is a reasonable way to keep
+  this current without remembering to run it by hand.
 - **git delta** - `git diff`/`git show`/etc. render through
   [delta](https://github.com/dandavison/delta) (line numbers, navigate
   mode) when it's installed - see `[delta]` in `git.config/.gitconfig`.

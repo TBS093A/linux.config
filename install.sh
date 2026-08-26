@@ -108,11 +108,25 @@ if [[ $PKG_MGR == apt-get ]]; then
 fi
 
 BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat \
-    "$(delta_pkg)" yazi ripgrep "$(fd_pkg)" jq yq lazygit btop)
+    "$(delta_pkg)" yazi ripgrep "$(fd_pkg)" jq yq lazygit btop k9s nvtop)
 if [[ $PROFILE == local ]]; then
     BASE_PKGS+=(neovim shellcheck shfmt)
 fi
 pkg_install "${BASE_PKGS[@]}"
+
+# mise (per-project tool version manager - python/node/terraform/kubectl/...)
+# isn't reliably packaged across distros, so this uses its own official
+# installer instead of pkg_install/PKG_MGR - user-local (~/.local/bin), no
+# sudo, safe to re-run. Installing the binary is as far as this goes: no
+# .mise.toml is generated anywhere, and it's opt-in per project the same
+# way direnv's .envrc already is - only the shell activation hook (.zshrc)
+# is unconditional, matching the zoxide/direnv pattern.
+if ! command -v mise >/dev/null 2>&1 && [[ ! -x "$HOME/.local/bin/mise" ]]; then
+    log "Installing mise"
+    curl -fsSL https://mise.run | sh || warn "mise install failed - see https://mise.jdx.dev/getting-started.html"
+else
+    log "mise already installed, skipping"
+fi
 
 # Nerd Font symbols (icons eza/fzf/etc. can render) - Void-only: it's the
 # one place this repo knows the exact right package. The full nerd-fonts-ttf
@@ -200,10 +214,11 @@ if command -v tmux >/dev/null 2>&1; then
         log "TPM already installed, skipping"
     fi
     # headless install pass (needs ~/.tmux.conf in place already, hence
-    # after make.symlinks.sh above) so resurrect/continuum/yank are ready
-    # without opening tmux and pressing prefix + I yourself
+    # after make.symlinks.sh above) so tmux-yank is ready without opening
+    # tmux and pressing prefix + I yourself - session/pane restore is
+    # tmux.session.sh's own job, not a TPM plugin's (see tmux.conf)
     if [[ -x "$TMUX_PLUGINS_DIR/tpm/bin/install_plugins" ]]; then
-        log "Installing tmux plugins (resurrect, continuum, yank)"
+        log "Installing tmux plugins (yank)"
         "$TMUX_PLUGINS_DIR/tpm/bin/install_plugins" >/dev/null 2>&1 \
             || warn "tmux plugin install failed - run inside tmux: prefix + I"
     fi
