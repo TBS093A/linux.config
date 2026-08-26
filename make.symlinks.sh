@@ -9,6 +9,12 @@ link_user_configs() {
 	ln -sf "$DOTFILES_DIR/zsh.config/lambda-00x097.zsh-theme" ~/.oh-my-zsh/themes/lambda-00x097.zsh-theme
 	ln -sf "$DOTFILES_DIR/tmux.config/tmux.conf" ~/.tmux.conf
 
+	# fixed $HOME path so tmux.conf's status-right can reference it without
+	# knowing where this repo was cloned (tmux config isn't shell, so it
+	# can't resolve $DOTFILES_DIR itself the way .zshrc does)
+	mkdir -p ~/.tmux
+	ln -sf "$DOTFILES_DIR/tmux.config/status-sys.sh" ~/.tmux/status-sys.sh
+
 	mkdir -p ~/.config/nvim
 	ln -sf "$DOTFILES_DIR/vim.config/init.vim" ~/.config/nvim/init.vim
 }

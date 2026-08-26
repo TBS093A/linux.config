@@ -158,6 +158,18 @@ fkill() {
     [[ -n $pid ]] && kill -9 "$pid"
 }
 
+# y: yazi, cd'ing the shell to wherever you navigated to on quit
+if command -v yazi >/dev/null 2>&1; then
+    y() {
+        local tmp cwd
+        tmp=$(mktemp -t yazi-cwd.XXXXXX)
+        yazi "$@" --cwd-file="$tmp"
+        cwd=$(cat "$tmp")
+        [[ -n $cwd && $cwd != "$PWD" ]] && cd "$cwd"
+        rm -f "$tmp"
+    }
+fi
+
 alias tmux-session="$DOTFILES_DIR/tmux.config/tmux.session.sh"
 alias help-cmd="$DOTFILES_DIR/help-cmd.sh"
 

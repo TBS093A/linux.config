@@ -2,6 +2,11 @@
 # host-specific / employer aliases here - real IPs, internal hostnames,
 # k8s cluster queries, etc. .zshrc sources it automatically if present.
 
+# drives the [DEV]/[PROD]/custom badge the lambda prompt shows between the
+# corner glyph and user@host - set automatically by `install.sh --server`,
+# edit by hand any time to change it. See zsh.config/lambda-00x097.zsh-theme.
+# export SERVER_TYPE="PROD"
+
 alias ssh-node000='ssh -i ~/.ssh/hetzner_accesses root@203.0.113.10'
 
 alias k8s-pvc-per-node='kubectl get pv -o custom-columns="NAME:.metadata.name,CAPACITY:.spec.capacity.storage,CLAIM:.spec.claimRef.name,NODE:.spec.nodeAffinity.required.nodeSelectorTerms[0].matchExpressions[0].values[0]"'

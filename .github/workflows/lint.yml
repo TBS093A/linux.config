@@ -17,6 +17,7 @@ jobs:
             help-cmd.sh \
             sshd.ssh.config/welcome.sh \
             tmux.config/tmux.session.sh \
+            tmux.config/status-sys.sh \
             zsh.config/install.zsh.plugins.sh \
             zsh.config/install.zsh.sh \
             bash.config/.bashrc \
@@ -32,7 +33,8 @@ jobs:
       - name: bash -n
         run: |
           for f in install.sh make.symlinks.sh help-cmd.sh sshd.ssh.config/welcome.sh \
-                   tmux.config/tmux.session.sh zsh.config/install.zsh.plugins.sh \
+                   tmux.config/tmux.session.sh tmux.config/status-sys.sh \
+                   zsh.config/install.zsh.plugins.sh \
                    zsh.config/install.zsh.sh bash.config/.bashrc bash.config/.bash_profile \
                    test/welcome-smoke.sh; do
             echo "bash -n $f"

@@ -4,6 +4,18 @@
 
 [core]
 	editor = nano
+	pager = delta
+
+[interactive]
+	diffFilter = delta --color-only
+
+# ansi mirrors palette.zsh's BAT_THEME=ansi - renders through the terminal's
+# own colors instead of a fixed syntect theme, so diffs match whatever
+# green/gray this terminal already uses instead of picking their own look
+[delta]
+	navigate = true
+	line-numbers = true
+	syntax-theme = ansi
 
 [alias]
 lg 			= log --all --decorate --oneline --graph

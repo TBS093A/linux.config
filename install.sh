@@ -86,12 +86,19 @@ docker_pkg() {
     esac
 }
 
+delta_pkg() {
+    case "$PKG_MGR" in
+        xbps-install) echo "delta" ;;
+        *)            echo "git-delta" ;;
+    esac
+}
+
 if [[ $PKG_MGR == apt-get ]]; then
     log "Refreshing apt package lists"
     _sudo apt-get update -qq || warn "apt-get update failed - continuing with whatever's cached"
 fi
 
-BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat)
+BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat "$(delta_pkg)" yazi)
 if [[ $PROFILE == local ]]; then
     BASE_PKGS+=(neovim)
 fi
@@ -119,6 +126,35 @@ if [[ $PROFILE == server ]]; then
         warn "Non-interactive shell - skipping the Docker prompt (pass it up front if you want it: sudo <pkgmgr> install $(docker_pkg))"
     fi
     (( install_docker )) && pkg_install "$(docker_pkg)"
+
+    # SERVER_TYPE drives the [DEV]/[PROD]/custom badge the lambda prompt
+    # shows between the corner glyph and user@host - see
+    # zsh.config/lambda-00x097.zsh-theme. Stored in .zshrc.local (gitignored,
+    # host-specific), not the tracked .zshrc, and only asked for a server
+    # profile - a personal/local box doesn't need the badge.
+    SERVER_TYPE=""
+    if [[ -t 0 ]]; then
+        echo "Server type for the prompt badge?"
+        select st in DEV PROD CUSTOM; do
+            case "$st" in
+                DEV|PROD) SERVER_TYPE=$st; break ;;
+                CUSTOM)   read -r -p "Custom label: " SERVER_TYPE; break ;;
+                *)        echo "Pick 1-3" ;;
+            esac
+        done
+    else
+        warn "Non-interactive shell - skipping the server-type prompt (set SERVER_TYPE yourself in zsh.config/.zshrc.local if you want the prompt badge)"
+    fi
+    if [[ -n $SERVER_TYPE ]]; then
+        ZSHRC_LOCAL="$DOTFILES_DIR/zsh.config/.zshrc.local"
+        [[ -f $ZSHRC_LOCAL ]] || cp "$DOTFILES_DIR/zsh.config/.zshrc.local.example" "$ZSHRC_LOCAL"
+        if grep -q '^export SERVER_TYPE=' "$ZSHRC_LOCAL" 2>/dev/null; then
+            sed -i "s/^export SERVER_TYPE=.*/export SERVER_TYPE=\"$SERVER_TYPE\"/" "$ZSHRC_LOCAL"
+        else
+            printf '\nexport SERVER_TYPE="%s"\n' "$SERVER_TYPE" >> "$ZSHRC_LOCAL"
+        fi
+        log "Prompt badge set: SERVER_TYPE=$SERVER_TYPE (zsh.config/.zshrc.local)"
+    fi
 fi
 
 if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
@@ -142,6 +178,26 @@ fi
 
 log "Symlinking dotfiles (user-level)"
 "$DOTFILES_DIR/make.symlinks.sh"
+
+if command -v tmux >/dev/null 2>&1; then
+    TMUX_PLUGINS_DIR="$HOME/.tmux/plugins"
+    if [[ ! -d "$TMUX_PLUGINS_DIR/tpm" ]]; then
+        log "Installing tmux plugin manager (TPM)"
+        mkdir -p "$TMUX_PLUGINS_DIR"
+        git clone --depth 1 https://github.com/tmux-plugins/tpm "$TMUX_PLUGINS_DIR/tpm" \
+            || warn "TPM clone failed - install manually: https://github.com/tmux-plugins/tpm"
+    else
+        log "TPM already installed, skipping"
+    fi
+    # headless install pass (needs ~/.tmux.conf in place already, hence
+    # after make.symlinks.sh above) so resurrect/continuum/yank are ready
+    # without opening tmux and pressing prefix + I yourself
+    if [[ -x "$TMUX_PLUGINS_DIR/tpm/bin/install_plugins" ]]; then
+        log "Installing tmux plugins (resurrect, continuum, yank)"
+        "$TMUX_PLUGINS_DIR/tpm/bin/install_plugins" >/dev/null 2>&1 \
+            || warn "tmux plugin install failed - run inside tmux: prefix + I"
+    fi
+fi
 
 if [[ $PROFILE == local ]] && command -v nvim >/dev/null 2>&1; then
     mkdir -p "$HOME/.cache/nvim"   # barbar.nvim writes its pin state here

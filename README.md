@@ -83,9 +83,10 @@ instead of the tracked one:
 
 `help-cmd` prints all of this from the shell itself (colored to match
 `welcome.sh`) - run it any time you forget what's here. `install.sh` pulls
-in `zoxide`, `direnv`, `eza`, and `bat` alongside the base packages; each
-piece below only activates if its tool is actually present (`command -v`
-guarded), so nothing breaks on a box where one of them failed to install.
+in `zoxide`, `direnv`, `eza`, `bat`, `delta`, and `yazi` alongside the base
+packages; each piece below only activates if its tool is actually present
+(`command -v` guarded), so nothing breaks on a box where one of them
+failed to install.
 
 - **zoxide** - `z <partial-path>` jumps to a frecency-ranked directory
   match, `zi` opens an fzf picker over ranked directories. Replaces `cd`
@@ -123,7 +124,42 @@ guarded), so nothing breaks on a box where one of them failed to install.
 - **tmux.conf** - keeps the default `C-b` prefix, adds vim-style pane
   splits/navigation (`| -` to split, `hjkl` to move, `HJKL` to resize),
   vi copy-mode, mouse support, and a statusbar in the same palette as
-  `welcome.sh` (gray labels, green accent).
+  `welcome.sh` (gray labels, green accent). `status-right` always shows
+  CPU/RAM (`tmux.config/status-sys.sh`, refreshed every 10s, not polled
+  every second) plus GPU utilization/VRAM appended only on a box that
+  actually has a card - same NVIDIA/AMD dual-vendor detection as
+  `welcome.sh`'s GPU meter, trimmed to one instantaneous reading.
+- **tmux plugins (TPM)** - `install.sh` bootstraps
+  [TPM](https://github.com/tmux-plugins/tpm) and headlessly installs
+  `tmux-resurrect`, `tmux-continuum` (autosaves every 15 min, autorestores
+  on tmux start - `prefix + Ctrl-s`/`Ctrl-r` to save/restore by hand), and
+  `tmux-yank`. This is a different thing from `tmux.config/tmux.session.sh`
+  below: that script is a manual/cron-friendly session+window+cwd dump,
+  while resurrect/continuum additionally restore pane *splits* and do it
+  automatically - the two aren't redundant, both stay.
+- **git delta** - `git diff`/`git show`/etc. render through
+  [delta](https://github.com/dandavison/delta) (line numbers, navigate
+  mode) when it's installed - see `[delta]` in `git.config/.gitconfig`.
+  Deliberately *not* side-by-side by default (this repo is meant to stay
+  usable on a narrow SSH terminal) - `git diff --side-by-side` opts in
+  per-command.
+- **yazi** - `y` opens the [yazi](https://github.com/sxyazi/yazi) terminal
+  file manager and `cd`s the shell to wherever you navigated to on quit.
+- **The prompt (`zsh.config/lambda-00x097.zsh-theme`)** - normally two
+  lines (`╭ user@host:path` / `╰ λ`). Two more things appear only when
+  relevant, same rule as everywhere else in this repo:
+  - A `[DEV]`/`[PROD]`/custom-label badge between the corner glyph and
+    `user@host`, driven by `$SERVER_TYPE` (green/red/yellow) - set once by
+    `install.sh --server`'s interactive prompt (stored in
+    `zsh.config/.zshrc.local`, see `.zshrc.local.example`), editable by
+    hand any time after.
+  - A 3rd line, only drawn inside a git repo or a kube-configured
+    directory: git branch + ahead/behind + modified/untracked counts
+    first (`main ⇡2 ⇣1 ✚3 ?2`), then the current K8s context - bold red
+    when the context name contains "prod". Both are icon-prefixed
+    (Nerd Font glyphs); the K8s one isn't guaranteed to be in every slim
+    Nerd Font build - see the comment above `_k8s_segment` in the theme
+    file if it renders as a box instead of a logo.
 
 ## The login banner (`sshd.ssh.config/welcome.sh`)
 

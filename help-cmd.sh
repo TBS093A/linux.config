@@ -45,6 +45,9 @@ else
     _row "cat <file>"         "bat not installed - plain cat"
 fi
 _row "ex <archive>"           "extract tar/zip/gz/bz2/rar/7z - whatever it is (.bashrc)"
+if _have yazi; then
+    _row "y"                  "yazi file manager, cd's the shell on quit"
+fi
 
 _section "Fuzzy search (fzf)"
 if _have fzf; then
@@ -70,6 +73,8 @@ _row "prefix + H/J/K/L"       "resize the current pane (vim-style)"
 _row "prefix + r"             "reload tmux.conf"
 _row "copy-mode: v / y"       "vi-style: start selection / copy and exit"
 _row "mouse"                  "click to select pane, drag to resize, scroll for copy-mode"
+_row "prefix + Ctrl-s / Ctrl-r" "tmux-resurrect: save / restore panes+layout"
+_row "status-right"           "CPU/RAM always shown, GPU appended if present (status-sys.sh)"
 
 if _have nvim; then
     _section "Neovim: buffers/tabs (barbar.nvim)"
@@ -138,6 +143,9 @@ _row "git cmm"                "add -A && commitizen commit"
 _row "git ch <branch>"        "checkout"
 _row "git psh / pll"          "push / pull"
 _row "git rsft / rhrd <n>"    "reset --soft / --hard"
+if _have delta; then
+    _row "git diff / show"    "rendered through delta (line numbers, navigate mode)"
+fi
 
 _section "Other"
 if _have direnv; then
@@ -151,5 +159,6 @@ _row "install.sh --server"    "server profile, skips neovim, offers Docker"
 _row "install.sh --system"    "also link sshd_config + the MOTD banner (sudo)"
 _row "WELCOME_SECTIONS=..."   "login banner: allowlist of pkg,docker,gpu,k8s,services"
 _row "NO_COLOR=1"             "login banner (and this command): strip all color"
+_row "SERVER_TYPE=DEV|PROD|.." "prompt badge (zsh.config/.zshrc.local, set by install.sh --server)"
 
 echo
