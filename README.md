@@ -24,6 +24,7 @@ get.package.manager.zsh  detects the box's package manager (apt/pacman/xbps/...)
 make.symlinks.sh         installs everything below (see Install)
 install.sh               bootstraps a bare box: packages + oh-my-zsh + symlinks
 help-cmd.sh              `help-cmd` - prints every command/keybind below (see CLI below)
+lint-shell.sh            `lint-shell` - runs CI's shellcheck/syntax checks locally
 ```
 
 ## Install
@@ -83,10 +84,13 @@ instead of the tracked one:
 
 `help-cmd` prints all of this from the shell itself (colored to match
 `welcome.sh`) - run it any time you forget what's here. `install.sh` pulls
-in `zoxide`, `direnv`, `eza`, `bat`, `delta`, and `yazi` alongside the base
-packages; each piece below only activates if its tool is actually present
-(`command -v` guarded), so nothing breaks on a box where one of them
-failed to install.
+in `zoxide`, `direnv`, `eza`, `bat`, `delta`, `yazi`, `ripgrep`, `fd`, `jq`,
+`yq`, `lazygit`, and `btop` alongside the base packages (`--local` adds
+`shellcheck`/`shfmt` on top, for editing this repo itself); each piece
+below only activates if its tool is actually present (`command -v`
+guarded), so nothing breaks on a box where one of them failed to install -
+not every package manager carries all of these (`lazygit`/`btop` in
+particular aren't in every distro's default repos).
 
 - **zoxide** - `z <partial-path>` jumps to a frecency-ranked directory
   match, `zi` opens an fzf picker over ranked directories. Replaces `cd`
@@ -96,6 +100,22 @@ failed to install.
 - **eza / bat** - `ls`/`ll`/`la` and `cat` are aliased to `eza`/`bat` when
   installed (icons + git status on listings, syntax highlighting on file
   contents); bat installs as `batcat` on Debian/Ubuntu, handled either way.
+- **ripgrep / fd** - `rg <pattern>` and `fd <pattern>` replace `grep -R`/
+  `find` (respects `.gitignore`, much faster); `fd` installs as `fd-find`
+  on Debian/Ubuntu (binary `fdfind`), aliased to `fd` either way. Both
+  compose with `fzf`, e.g. `fd --type f | fzf` or `Ctrl-T`'s picker.
+- **jq / yq** - JSON/YAML query and pretty-print, same filter syntax
+  (`yq '.spec.template.spec.containers[].image' deployment.yaml`).
+- **lazygit** - `lg` opens a TUI for staging/unstaging, rebase, stash, and
+  browsing commits - a faster day-to-day complement to the `git.config`
+  aliases below, not a replacement for them.
+- **btop** - `btop` for an interactive CPU/RAM/process view; the always-on
+  numbers in the login banner and tmux statusbar cover the at-a-glance case.
+- **lint-shell** - runs the exact same checks `.github/workflows/lint.yml`
+  runs in CI (`shellcheck` + `bash -n`/`zsh -n` on every script in the
+  repo), locally, before you push. `shfmt`, if installed, also prints a
+  formatting diff - informational only, not a pass/fail gate, since
+  reformatting every existing script to match would be its own large diff.
 - **Nerd Font (for eza's icons)** - `eza --icons` shows tofu/`?` boxes
   instead of file-type icons without one. Fonts render client-side, so
   which box needs the font depends on how you're looking at the

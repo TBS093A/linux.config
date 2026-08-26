@@ -93,14 +93,24 @@ delta_pkg() {
     esac
 }
 
+# fd installs as fd-find on Debian/Ubuntu (name clash with another package) -
+# the binary itself ends up as `fdfind` there too, aliased to `fd` in .zshrc
+fd_pkg() {
+    case "$PKG_MGR" in
+        apt-get) echo "fd-find" ;;
+        *)       echo "fd" ;;
+    esac
+}
+
 if [[ $PKG_MGR == apt-get ]]; then
     log "Refreshing apt package lists"
     _sudo apt-get update -qq || warn "apt-get update failed - continuing with whatever's cached"
 fi
 
-BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat "$(delta_pkg)" yazi)
+BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat \
+    "$(delta_pkg)" yazi ripgrep "$(fd_pkg)" jq yq lazygit btop)
 if [[ $PROFILE == local ]]; then
-    BASE_PKGS+=(neovim)
+    BASE_PKGS+=(neovim shellcheck shfmt)
 fi
 pkg_install "${BASE_PKGS[@]}"
 

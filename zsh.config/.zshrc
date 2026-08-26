@@ -144,6 +144,14 @@ if command -v bat >/dev/null 2>&1 || command -v batcat >/dev/null 2>&1; then
     export FZF_CTRL_T_OPTS="--preview '(bat --color=always --style=numbers --line-range=:500 {} || batcat --color=always --style=numbers --line-range=:500 {}) 2>/dev/null'"
 fi
 
+# fd ships as `fdfind` on Debian/Ubuntu too (same name clash as bat/batcat)
+if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+    alias fd='fdfind'
+fi
+
+# lg: lazygit, when installed
+command -v lazygit >/dev/null 2>&1 && alias lg='lazygit'
+
 # fco: fuzzy git checkout - pick a local or remote branch
 fco() {
     local branch
@@ -172,6 +180,7 @@ fi
 
 alias tmux-session="$DOTFILES_DIR/tmux.config/tmux.session.sh"
 alias help-cmd="$DOTFILES_DIR/help-cmd.sh"
+alias lint-shell="$DOTFILES_DIR/lint-shell.sh"
 
 alias add-tbs093a-git-id='eval "$(ssh-agent -s)"; ssh-add ~/.ssh/git_accesses'
 

@@ -60,6 +60,23 @@ if _have yazi; then
     _row "y"                  "yazi file manager, cd's the shell on quit"
 fi
 
+_section "Search"
+if _have rg; then
+    _row "rg <pattern>"       "ripgrep - fast recursive grep, respects .gitignore"
+fi
+if _have fd || _have fdfind; then
+    _row "fd <pattern>"       "fast recursive find (fdfind, aliased, on Debian/Ubuntu)"
+fi
+if ! _have rg && ! (_have fd || _have fdfind); then
+    _row "grep -R / find"     "ripgrep/fd not installed - plain grep/find for now"
+fi
+if _have jq; then
+    _row "jq <filter>"        "JSON query/pretty-print"
+fi
+if _have yq; then
+    _row "yq <filter>"        "same idea as jq, for YAML"
+fi
+
 _section "Fuzzy search (fzf)"
 if _have fzf; then
     _row "Ctrl-R"              "fuzzy search command history"
@@ -143,11 +160,15 @@ _section "Also on this box (install.sh)"
 _row "curl"                   "installed, no alias - plain curl"
 _row "openconnect"            "installed for vpn.config/connect.sh (SSL VPN)"
 _row "wireguard-tools"        "installed for the vpn-00x097-* aliases (wg-quick)"
+if _have btop; then
+    _row "btop"                "interactive CPU/RAM/process monitor"
+fi
 if _have fc-list && fc-list 2>/dev/null | grep -qi "nerd font"; then
     _row "Nerd Font symbols"  "installed - eza's icons should render locally"
 else
     _row "Nerd Font symbols"  "not found here - eza --icons needs one (see README)"
 fi
+_row "lint-shell"             "shellcheck + bash/zsh -n on every script (what CI runs)"
 
 _section "git ($HOME/.gitconfig aliases)"
 _row "git lg / lg0 / lg1"     "graph log, plain / with author+date"
@@ -157,6 +178,9 @@ _row "git psh / pll"          "push / pull"
 _row "git rsft / rhrd <n>"    "reset --soft / --hard"
 if _have delta; then
     _row "git diff / show"    "rendered through delta (line numbers, navigate mode)"
+fi
+if _have lazygit; then
+    _row "lg"                  "lazygit - stage/unstage, rebase, stash, browse commits"
 fi
 
 _section "Other"
