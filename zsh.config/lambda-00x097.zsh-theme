@@ -19,7 +19,12 @@ _server_type_segment() {
         PROD) color=$RED; bold="%B" ;;
         DEV)  color=$GREEN ;;
     esac
-    printf '%%F{%s}%s[%s]%%b%%f ' "$color" "$bold" "$SERVER_TYPE"
+    # %b isn't a targeted un-bold in zsh - it's a full attribute reset (sgr0),
+    # so without restoring %B here it silently kills the ambient bold that
+    # PROMPT='%B$(prompt)%b ' applies to the whole prompt, leaving everything
+    # after the badge (user@host, the git/K8s line) visibly lighter-weight
+    # than the "╭" before it.
+    printf '%%F{%s}%s[%s]%%b%%f%%B ' "$color" "$bold" "$SERVER_TYPE"
 }
 
 # Git status (3rd prompt line, first segment) - one `git status
