@@ -163,6 +163,9 @@ _row "wireguard-tools"        "installed for the vpn-00x097-* aliases (wg-quick)
 if _have btop; then
     _row "btop"                "interactive CPU/RAM/process monitor"
 fi
+if _have docker; then
+    _row "docker"              "installed, no alias - plain docker (install.sh --server, optional)"
+fi
 if _have fc-list && fc-list 2>/dev/null | grep -qi "nerd font"; then
     _row "Nerd Font symbols"  "installed - eza's icons should render locally"
 else
@@ -189,6 +192,7 @@ if _have direnv; then
 fi
 _row "vpn-00x097-connect"     "wg-quick up wg0-00x097"
 _row "vpn-00x097-disconnect"  "wg-quick down wg0-00x097"
+_row "add-tbs093a-git-id"     "ssh-agent + ssh-add ~/.ssh/git_accesses"
 _row "k8s"                    "= kubectl"
 if _have k9s; then
     _row "k9"                  "= k9s - interactive K8s TUI"

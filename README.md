@@ -124,6 +124,11 @@ useless - no separate `--gpu` flag or detection to maintain).
   since it isn't reliably packaged across distros. Opt in per project with
   a `.mise.toml`, same as `direnv`'s `.envrc` - `install.sh` only sets up
   the binary and the shell activation hook, nothing project-specific.
+- **Docker** - unlike everything else on this list, *not* installed
+  unconditionally - `install.sh --server` asks first (see Install below),
+  since it's a heavier, more invasive install (a daemon + a group
+  membership) than a CLI binary. No alias, plain `docker`; running
+  containers show up in `welcome.sh`'s login banner when it's present.
 - **lint-shell** - runs the exact same checks `.github/workflows/lint.yml`
   runs in CI (`shellcheck` + `bash -n`/`zsh -n` on every script in the
   repo), locally, before you push. `shfmt`, if installed, also prints a
