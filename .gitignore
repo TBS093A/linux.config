@@ -1,6 +1,9 @@
 zsh.config/.zshrc.local
 vpn.config/vpns.local
 
+# scratch/draft file at repo root, not the tracked bash.config/.bashrc
+/.bashrc
+
 *.swp
 *.swo
 *~
