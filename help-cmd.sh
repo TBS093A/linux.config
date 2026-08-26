@@ -26,10 +26,9 @@ _have() { command -v "$1" >/dev/null 2>&1; }
 printf '%s%shelp-cmd%s %s- what you can run on this box%s\n' "$BOLD" "$ACCENT" "$RESET" "$DIM" "$RESET"
 
 _section "Prompt (zsh.config/lambda-00x097.zsh-theme)"
-_row "╭ [TYPE] user@host:path" "line 1 - [TYPE] only shows if \$SERVER_TYPE is set"
-_row "  [DEV]"                  "green"
-_row "  [PROD]"                 "bold red - hard to miss, this is production"
-_row "  [anything else]"        "yellow - a custom label (install.sh --server, option 3)"
+_row "╭ [PROVIDER] [TYPE] user@host:path" "line 1 - each badge only shows if its env var is set"
+_row "  [PROVIDER]"              "AWS/OVH/AZURE/GCP/HETZNER (fixed color) or a custom label+color"
+_row "  [TYPE]"                  "[DEV] green, [PROD] bold red, anything else (custom) yellow"
 _row "3rd line: git + K8s"      "only drawn when at least one has something to show"
 _row "  branch ⇡N ⇣N ✚N ?N"    "commits ahead/behind upstream, modified, untracked (0s hidden)"
 _row "  K8s context"            "read from \$KUBECONFIG / ~/.kube/config - no kubectl call"
@@ -231,5 +230,7 @@ _row "install.sh --system"    "also link sshd_config + the MOTD banner (sudo)"
 _row "WELCOME_SECTIONS=..."   "login banner: allowlist of pkg,docker,gpu,k8s,services"
 _row "NO_COLOR=1"             "login banner (and this command): strip all color"
 _row "SERVER_TYPE=DEV|PROD|.." "prompt badge (zsh.config/.zshrc.local, set by install.sh --server)"
+_row "CLOUD_PROVIDER=AWS|.."   "prompt badge, shows before SERVER_TYPE (same file, same install step)"
+_row "CLOUD_PROVIDER_COLOR=N"  "256-color number for a custom CLOUD_PROVIDER label (0-255)"
 
 echo

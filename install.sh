@@ -141,6 +141,21 @@ if [[ $PKG_MGR == xbps-install ]]; then
     command -v fc-cache >/dev/null 2>&1 && fc-cache -f >/dev/null 2>&1
 fi
 
+# Upserts export VAR="value" into .zshrc.local (gitignored, host-specific) -
+# creating it from the .example first if it doesn't exist yet. Used below
+# for CLOUD_PROVIDER/CLOUD_PROVIDER_COLOR/SERVER_TYPE, the lambda prompt's
+# line-1 badge variables (see zsh.config/lambda-00x097.zsh-theme).
+set_zshrc_local_var() {
+    local var="$1" value="$2"
+    local zshrc_local="$DOTFILES_DIR/zsh.config/.zshrc.local"
+    [[ -f $zshrc_local ]] || cp "$DOTFILES_DIR/zsh.config/.zshrc.local.example" "$zshrc_local"
+    if grep -q "^export ${var}=" "$zshrc_local" 2>/dev/null; then
+        sed -i "s/^export ${var}=.*/export ${var}=\"${value}\"/" "$zshrc_local"
+    else
+        printf '\nexport %s="%s"\n' "$var" "$value" >> "$zshrc_local"
+    fi
+}
+
 if [[ $PROFILE == server ]]; then
     install_docker=0
     if [[ -t 0 ]]; then
@@ -151,11 +166,43 @@ if [[ $PROFILE == server ]]; then
     fi
     (( install_docker )) && pkg_install "$(docker_pkg)"
 
-    # SERVER_TYPE drives the [DEV]/[PROD]/custom badge the lambda prompt
-    # shows between the corner glyph and user@host - see
-    # zsh.config/lambda-00x097.zsh-theme. Stored in .zshrc.local (gitignored,
-    # host-specific), not the tracked .zshrc, and only asked for a server
-    # profile - a personal/local box doesn't need the badge.
+    # CLOUD_PROVIDER drives the [AWS]/[OVH]/[AZURE]/[GCP]/[HETZNER]/custom
+    # badge the lambda prompt shows first on line 1, before SERVER_TYPE's
+    # badge - see zsh.config/lambda-00x097.zsh-theme. The 5 known providers
+    # get a fixed color baked into the theme; CUSTOM asks for both a label
+    # and its own 256-color number (CLOUD_PROVIDER_COLOR), falling back to
+    # plain gray if left blank. Only asked for a server profile, same
+    # reasoning as SERVER_TYPE below - a personal/local box doesn't need it.
+    CLOUD_PROVIDER=""
+    CLOUD_PROVIDER_COLOR=""
+    if [[ -t 0 ]]; then
+        echo "Cloud/host provider for the prompt badge?"
+        select cp in AWS OVH AZURE GCP HETZNER CUSTOM; do
+            case "$cp" in
+                AWS|OVH|AZURE|GCP|HETZNER) CLOUD_PROVIDER=$cp; break ;;
+                CUSTOM)
+                    read -r -p "Custom label: " CLOUD_PROVIDER
+                    while true; do
+                        read -r -p "Color (256-color number 0-255, blank for house gray - 'spectrum_ls' in zsh previews the scale): " CLOUD_PROVIDER_COLOR
+                        [[ -z $CLOUD_PROVIDER_COLOR ]] && break
+                        [[ $CLOUD_PROVIDER_COLOR =~ ^[0-9]+$ && $CLOUD_PROVIDER_COLOR -le 255 ]] && break
+                        echo "Enter a number 0-255, or leave blank"
+                    done
+                    break
+                    ;;
+                *) echo "Pick 1-6" ;;
+            esac
+        done
+    else
+        warn "Non-interactive shell - skipping the cloud-provider prompt (set CLOUD_PROVIDER yourself in zsh.config/.zshrc.local if you want the badge)"
+    fi
+    if [[ -n $CLOUD_PROVIDER ]]; then
+        set_zshrc_local_var CLOUD_PROVIDER "$CLOUD_PROVIDER"
+        [[ -n $CLOUD_PROVIDER_COLOR ]] && set_zshrc_local_var CLOUD_PROVIDER_COLOR "$CLOUD_PROVIDER_COLOR"
+        log "Prompt badge set: CLOUD_PROVIDER=$CLOUD_PROVIDER${CLOUD_PROVIDER_COLOR:+ (color $CLOUD_PROVIDER_COLOR)} (zsh.config/.zshrc.local)"
+    fi
+
+    # SERVER_TYPE drives the [DEV]/[PROD]/custom badge right after it.
     SERVER_TYPE=""
     if [[ -t 0 ]]; then
         echo "Server type for the prompt badge?"
@@ -170,13 +217,7 @@ if [[ $PROFILE == server ]]; then
         warn "Non-interactive shell - skipping the server-type prompt (set SERVER_TYPE yourself in zsh.config/.zshrc.local if you want the prompt badge)"
     fi
     if [[ -n $SERVER_TYPE ]]; then
-        ZSHRC_LOCAL="$DOTFILES_DIR/zsh.config/.zshrc.local"
-        [[ -f $ZSHRC_LOCAL ]] || cp "$DOTFILES_DIR/zsh.config/.zshrc.local.example" "$ZSHRC_LOCAL"
-        if grep -q '^export SERVER_TYPE=' "$ZSHRC_LOCAL" 2>/dev/null; then
-            sed -i "s/^export SERVER_TYPE=.*/export SERVER_TYPE=\"$SERVER_TYPE\"/" "$ZSHRC_LOCAL"
-        else
-            printf '\nexport SERVER_TYPE="%s"\n' "$SERVER_TYPE" >> "$ZSHRC_LOCAL"
-        fi
+        set_zshrc_local_var SERVER_TYPE "$SERVER_TYPE"
         log "Prompt badge set: SERVER_TYPE=$SERVER_TYPE (zsh.config/.zshrc.local)"
     fi
 fi

@@ -2,9 +2,20 @@
 # host-specific / employer aliases here - real IPs, internal hostnames,
 # k8s cluster queries, etc. .zshrc sources it automatically if present.
 
-# drives the [DEV]/[PROD]/custom badge the lambda prompt shows between the
-# corner glyph and user@host - set automatically by `install.sh --server`,
-# edit by hand any time to change it. See zsh.config/lambda-00x097.zsh-theme.
+# Lambda prompt line-1 badges, both set automatically by `install.sh
+# --server`, edit by hand any time to change them. See
+# zsh.config/lambda-00x097.zsh-theme. Order on the prompt: [PROVIDER]
+# [TYPE] user@host:path - PROVIDER first.
+#
+# CLOUD_PROVIDER: AWS/OVH/AZURE/GCP/HETZNER get a fixed color; anything
+# else is a custom label, colored by CLOUD_PROVIDER_COLOR (a 256-color
+# number, 'spectrum_ls' in zsh previews the scale) or plain gray if unset.
+# export CLOUD_PROVIDER="HETZNER"
+# export CLOUD_PROVIDER="homelab"
+# export CLOUD_PROVIDER_COLOR="213"
+#
+# SERVER_TYPE: DEV green, PROD bold red, anything else (a custom label)
+# yellow.
 # export SERVER_TYPE="PROD"
 
 alias ssh-node000='ssh -i ~/.ssh/hetzner_accesses root@203.0.113.10'

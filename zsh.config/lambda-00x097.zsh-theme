@@ -8,6 +8,27 @@ export GREEN="002"
 export YELLOW="190"
 export RED="196"
 
+# Cloud/host provider badge (line 1, before the server-type badge) - set by
+# `install.sh --server` into zsh.config/.zshrc.local as $CLOUD_PROVIDER.
+# Empty/unset means nothing shown. The 5 known providers get a fixed,
+# brand-ish color; anything else (a custom label) reads $CLOUD_PROVIDER_COLOR
+# if set (also asked for by install.sh's CUSTOM option), falling back to
+# plain gray. Just %F/%f here, no %B/%b - no bold-consistency gotcha to
+# work around, unlike _server_type_segment below.
+_cloud_provider_segment() {
+    [[ -n ${CLOUD_PROVIDER:-} ]] || return
+    local color=$GRAY
+    case "${(U)CLOUD_PROVIDER}" in
+        AWS)     color=208 ;;   # orange
+        OVH)     color=33  ;;   # blue
+        AZURE)   color=45  ;;   # cyan
+        GCP)     color=178 ;;   # gold
+        HETZNER) color=202 ;;   # red-orange
+        *)       [[ -n ${CLOUD_PROVIDER_COLOR:-} ]] && color=$CLOUD_PROVIDER_COLOR ;;
+    esac
+    printf '%%F{%s}[%s]%%f ' "$color" "$CLOUD_PROVIDER"
+}
+
 # Server-type badge (line 1, between the corner glyph and user@host) - set
 # by `install.sh --server` into zsh.config/.zshrc.local as $SERVER_TYPE.
 # Empty/unset means nothing shown, same "only if relevant" rule as the
@@ -91,7 +112,7 @@ prompt() {
         user_color=$RED; host_color=$RED; lambda_color=$RED
     fi
 
-    local line1="%F{$GRAY}╭ $(_server_type_segment)%F{$user_color}%n%F{$GRAY}@%F{$host_color}%M%F{$GRAY}:%~%f"
+    local line1="%F{$GRAY}╭ $(_cloud_provider_segment)$(_server_type_segment)%F{$user_color}%n%F{$GRAY}@%F{$host_color}%M%F{$GRAY}:%~%f"
 
     local git_seg="" k8s_seg="" mid=""
     git_seg=$(_git_segment)

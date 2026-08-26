@@ -192,11 +192,17 @@ useless - no separate `--gpu` flag or detection to maintain).
 - **The prompt (`zsh.config/lambda-00x097.zsh-theme`)** - normally two
   lines (`╭ user@host:path` / `╰ λ`). Two more things appear only when
   relevant, same rule as everywhere else in this repo:
-  - A `[DEV]`/`[PROD]`/custom-label badge between the corner glyph and
-    `user@host`, driven by `$SERVER_TYPE` (green/red/yellow) - set once by
-    `install.sh --server`'s interactive prompt (stored in
-    `zsh.config/.zshrc.local`, see `.zshrc.local.example`), editable by
-    hand any time after.
+  - Two badges between the corner glyph and `user@host`, in order:
+    `[PROVIDER]` then `[TYPE]`. Both are set once by `install.sh
+    --server`'s interactive prompts (stored in `zsh.config/.zshrc.local`,
+    see `.zshrc.local.example`), editable by hand any time after.
+    - `$CLOUD_PROVIDER` - `AWS`/`OVH`/`AZURE`/`GCP`/`HETZNER` each get a
+      fixed, brand-ish color baked into the theme; anything else is a
+      custom label, colored by `$CLOUD_PROVIDER_COLOR` (a 256-color
+      number - `spectrum_ls` in zsh previews the scale) or plain gray if
+      that's left unset.
+    - `$SERVER_TYPE` - `DEV` green, `PROD` bold red, anything else (a
+      custom label) yellow.
   - A 3rd line, only drawn inside a git repo or a kube-configured
     directory: git branch + ahead/behind + modified/untracked counts
     first (`main ⇡2 ⇣1 ✚3 ?2`), then the current K8s context - bold red
