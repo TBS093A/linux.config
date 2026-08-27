@@ -25,10 +25,19 @@ link_system_configs() {
 	sudo ln -sf "$DOTFILES_DIR/sshd.ssh.config/sshd_config" /etc/ssh/sshd_config
 }
 
-link_user_configs
-
+# Mutually exclusive, not additive: --system only does the system-level
+# linking. A plain `sudo ./make.symlinks.sh --system` doesn't reset $HOME
+# to root's on most distros (Void included), so if this also called
+# link_user_configs, root would happily `ln -sf` over the invoking user's
+# own ~/.zshrc, ~/.gitconfig, ~/.oh-my-zsh/themes/... - poisoning their
+# ownership to root and breaking every later unprivileged re-run with a
+# "Permission denied" trying to re-point that same symlink. install.sh
+# calls this script twice for exactly this reason: once unprivileged
+# (user configs) and, only if --system was requested, separately under
+# sudo (system configs only).
 if [[ "${1:-}" == "--system" ]]; then
 	link_system_configs
 else
-	echo "Skipped system-wide configs (motd, sshd_config) - re-run with --system to link those (needs sudo)."
+	link_user_configs
+	echo "Skipped system-wide configs (motd, sshd_config) - re-run with 'sudo ./make.symlinks.sh --system' to link those."
 fi

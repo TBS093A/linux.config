@@ -64,9 +64,18 @@ If you'd rather skip the package install (already have everything) and
 just re-point the symlinks:
 
 ```bash
-./make.symlinks.sh            # user-level dotfiles only (~/.gitconfig, ~/.zshrc, ~/.tmux.conf, nvim config)
-sudo ./make.symlinks.sh --system   # also links sshd_config + the MOTD banner (needs root)
+./make.symlinks.sh                 # user-level dotfiles (~/.gitconfig, ~/.zshrc, ~/.tmux.conf, nvim config)
+sudo ./make.symlinks.sh --system   # sshd_config + the MOTD banner only (needs root)
 ```
+
+The two are mutually exclusive, not additive - run the first as yourself,
+and the second (only if you also want the system-wide bits) separately
+under `sudo`. `--system` never touches the user-level dotfiles: since a
+bare `sudo` doesn't reset `$HOME` to root's on most distros (Void
+included), if it did, root would `ln -sf` straight over your own
+`~/.zshrc`/`~/.gitconfig`/`~/.oh-my-zsh/themes/...`, silently re-owning
+them to root and breaking the next unprivileged re-run with a "Permission
+denied" on that same symlink.
 
 `--system` is opt-in on purpose (in both scripts): it replaces
 `/etc/ssh/sshd_config` and the `/etc/updated-motd.d` / `/etc/profile.d`
