@@ -1,9 +1,19 @@
 # linux.config
 
+[![lint](https://github.com/TBS093A/linux.config/actions/workflows/lint.yml/badge.svg)](https://github.com/TBS093A/linux.config/actions/workflows/lint.yml)
+[![test](https://github.com/TBS093A/linux.config/actions/workflows/test.yml/badge.svg)](https://github.com/TBS093A/linux.config/actions/workflows/test.yml)
+[![gitleaks](https://github.com/TBS093A/linux.config/actions/workflows/gitleaks.yml/badge.svg)](https://github.com/TBS093A/linux.config/actions/workflows/gitleaks.yml)
+[![install-matrix](https://github.com/TBS093A/linux.config/actions/workflows/install-matrix.yml/badge.svg)](https://github.com/TBS093A/linux.config/actions/workflows/install-matrix.yml)
+
 Personal dotfiles built around [Void Linux](https://voidlinux.org/)
 (`void.node.00`) - shell configs, a custom login banner, VPN/tmux helpers,
 and a couple of Void-specific setup notes. `install.sh` isn't Void-only
 though - see Install below.
+
+![welcome.sh login banner - ASCII logo, OS/CPU/RAM/disk/GPU meters, sessions, open ports, docker containers, and K8s node/pods](.github/assets/welcome-banner.png)
+
+*(illustrative data - a real login shows your own box's numbers; see
+[The login banner](#the-login-banner-sshdsshconfigwelcomesh) below)*
 
 ## Layout
 
