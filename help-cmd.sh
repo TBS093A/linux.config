@@ -118,6 +118,13 @@ if _have nvim; then
     _row "opens automatically"  "terminal (bottom split) -> tree (left) -> avante (right sidebar)"
     _row "cursor lands in"      "the editor - focus is restored there after all three open"
 
+    _section "Neovim: moving between panes (tree / editor / terminal / avante)"
+    _row "Ctrl-w h/j/k/l"      "move to the pane left/down/up/right (nvim default, works everywhere)"
+    _row "Ctrl-w w"            "cycle through all panes"
+    _row "in the terminal"     "Ctrl-\\ Ctrl-n first - terminal mode eats Ctrl-w otherwise"
+    _row "\\af"                 "jump straight to/from avante's sidebar, from anywhere"
+    _row "Tab / Shift-Tab"     "in avante's sidebar: switch between its own chat/files/input panes"
+
     _section "Neovim: buffers/tabs (barbar.nvim)"
     _row "Ctrl-s"              "save and close the buffer"
     _row "Alt-, / Alt-."       "previous / next buffer"
@@ -128,7 +135,6 @@ if _have nvim; then
     _row "Alt-Shift-c"         "restore last closed buffer"
     _row "Ctrl-p"              "pick a buffer to delete (BufferPickDelete)"
     _row "Space-b b/d/l/w"     "reorder buffers: by number/dir/language/window"
-    _row "Ctrl-w h/j/k/l/w"    "switch window left/down/up/right / cycle (nvim default)"
 
     _section "Neovim: file tree (NvimTree, Ctrl-b toggles, opens on startup)"
     _row "H / I"               "toggle hidden files / gitignored files"
