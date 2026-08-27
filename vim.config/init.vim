@@ -346,51 +346,64 @@ call plug#begin()
         au VimEnter * lua require("render-markdown").setup({ file_types = { "markdown", "Avante" } })
 
       " avante.nvim loading - sidebar needs the global statusline to
-      " render correctly (see avante's own README), and its setup runs
-      " on the 'User avante.nvim' event specifically (fired once vim-plug
-      " has it fully loaded) rather than VimEnter like everything else
-      " above - that's vim-plug's own documented hookup for this plugin
+      " render correctly (see avante's own README). Its README's own
+      " vim-plug snippet hooks setup() on the 'User avante.nvim' event
+      " instead of VimEnter - verified by hand that this never fires
+      " here: vim-plug only dispatches a generic 'User <plugin>' event
+      " for LAZILY loaded plugins (Plug '...', { 'on': ... } / { 'for':
+      " ... }), and this Plug line above has neither, so it loads eagerly
+      " at plug#end() and that event never comes. VimEnter, same as
+      " every other plugin in this file, actually fires.
 
         au VimEnter * lua vim.opt.laststatus = 3
 
-        autocmd! User avante.nvim
+      " a heredoc can't be glued onto the end of an `autocmd` line as its
+      " command (tried that - E492 on every line inside it) - it has to
+      " be its own top-level `lua << EOF` block, so the VimEnter hook is
+      " registered from inside it instead, via the Lua API directly
         lua << EOF
-        require('avante').setup({
-          provider = "claude",
-          providers = {
-            -- ANTHROPIC_API_KEY - see zsh.config/.zshrc.local.example
-            claude = {
-              endpoint = "https://api.anthropic.com",
-              model = "claude-sonnet-5",
-              extra_request_body = {
-                temperature = 0.75,
-                max_tokens = 8192,
+        vim.api.nvim_create_autocmd('VimEnter', {
+          callback = function()
+            require('avante').setup({
+              provider = "claude",
+              providers = {
+                -- ANTHROPIC_API_KEY - see zsh.config/.zshrc.local.example
+                claude = {
+                  endpoint = "https://api.anthropic.com",
+                  model = "claude-sonnet-5",
+                  extra_request_body = {
+                    temperature = 0.75,
+                    max_tokens = 8192,
+                  },
+                },
+                -- OPENAI_API_KEY - see zsh.config/.zshrc.local.example.
+                -- Model name goes stale fast; swap for whatever you
+                -- actually have access to (:AvanteModels lists what
+                -- avante knows about)
+                openai = {
+                  endpoint = "https://api.openai.com/v1",
+                  model = "gpt-4o",
+                  extra_request_body = {
+                    temperature = 0.75,
+                    max_tokens = 8192,
+                  },
+                },
+                -- Grok isn't a built-in avante provider, but xAI's API is
+                -- OpenAI-compatible, so __inherited_from = "openai" wires
+                -- it up the same way avante's own docs do for
+                -- openrouter/groq/deepseek/etc. XAI_API_KEY - see
+                -- .zshrc.local.example; check
+                -- https://docs.x.ai/docs/models for a model your account
+                -- actually has access to
+                grok = {
+                  __inherited_from = "openai",
+                  api_key_name = "XAI_API_KEY",
+                  endpoint = "https://api.x.ai/v1",
+                  model = "grok-4",
+                },
               },
-            },
-            -- OPENAI_API_KEY - see zsh.config/.zshrc.local.example. Model
-            -- name goes stale fast; swap for whatever you actually have
-            -- access to (:AvanteModels lists what avante knows about)
-            openai = {
-              endpoint = "https://api.openai.com/v1",
-              model = "gpt-4o",
-              extra_request_body = {
-                temperature = 0.75,
-                max_tokens = 8192,
-              },
-            },
-            -- Grok isn't a built-in avante provider, but xAI's API is
-            -- OpenAI-compatible, so __inherited_from = "openai" wires it
-            -- up the same way avante's own docs do for openrouter/groq/
-            -- deepseek/etc. XAI_API_KEY - see .zshrc.local.example; check
-            -- https://docs.x.ai/docs/models for a model your account
-            -- actually has access to
-            grok = {
-              __inherited_from = "openai",
-              api_key_name = "XAI_API_KEY",
-              endpoint = "https://api.x.ai/v1",
-              model = "grok-4",
-            },
-          },
+            })
+          end,
         })
 EOF
 
