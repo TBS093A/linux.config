@@ -166,10 +166,24 @@ fco() {
     [[ -n $branch ]] && git checkout "$branch"
 }
 
-# fkill: fuzzy-pick a process, confirm, kill -9 it
+# shared fuzzy process picker for fkill/fkill9 below - echoes the chosen
+# PID, or nothing if the fzf picker was cancelled
+_fkill_pick() {
+    ps -eo pid,user,pcpu,pmem,comm --sort=-pcpu | fzf --height 40% --reverse --header-lines=1 | awk '{print $1}'
+}
+
+# fkill: fuzzy-pick a process, kill -TERM it (graceful - lets it clean up)
 fkill() {
     local pid
-    pid=$(ps -eo pid,user,pcpu,pmem,comm --sort=-pcpu | fzf --height 40% --reverse --header-lines=1 | awk '{print $1}') || return
+    pid=$(_fkill_pick) || return
+    [[ -n $pid ]] && kill "$pid"
+}
+
+# fkill9: same picker as fkill, kill -9/SIGKILL instead - for a process
+# that doesn't respond to plain fkill (hung, ignoring SIGTERM)
+fkill9() {
+    local pid
+    pid=$(_fkill_pick) || return
     [[ -n $pid ]] && kill -9 "$pid"
 }
 

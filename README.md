@@ -25,6 +25,7 @@ make.symlinks.sh         installs everything below (see Install)
 install.sh               bootstraps a bare box: packages + oh-my-zsh + symlinks
 help-cmd.sh              `help-cmd` - prints every command/keybind below (see CLI below)
 lint-shell.sh            `lint-shell` - runs CI's shellcheck/syntax checks locally
+.pre-commit-config.yaml  same checks + gitleaks, wired to run on `git commit` (see CI below)
 ```
 
 ## Install
@@ -109,6 +110,11 @@ instead of the tracked one:
       IdentityFile ~/.ssh/hetzner_accesses
   ```
 
+`gitleaks.yml` (see CI below) backs this up on every push/PR, and the
+same scan runs locally on `git commit` via `pre-commit` - belt and
+braces, not a replacement for keeping real values out of tracked files
+in the first place.
+
 ## Day-to-day extras
 
 `help-cmd` prints all of this from the shell itself (colored to match
@@ -188,14 +194,16 @@ useless - no separate `--gpu` flag or detection to maintain).
 - **`zsh.config/palette.zsh`** - the gray/accent numbers `welcome.sh` uses,
   in one place, sourced by `.zshrc` and turned into `LS_COLORS` (so
   directories/symlinks/executables in `ls`/`eza` match), `FZF_DEFAULT_OPTS`
-  (so every fzf picker - history, `Ctrl-T`, `fco`, `fkill`, `zi` - matches),
+  (so every fzf picker - history, `Ctrl-T`, `fco`, `fkill`/`fkill9`, `zi` -
+  matches),
   and `BAT_THEME=ansi` (so `bat` renders through the terminal's own ANSI
   colors instead of a fixed theme). `tmux.conf`'s statusbar uses the same
   numbers directly, since tmux config can't source shell files.
 - **fzf, deeper than completion** - `Ctrl-T`'s file picker previews with
   `bat` when it's around; `fco` fuzzy-picks a local/remote git branch and
-  checks it out; `fkill` fuzzy-picks a process (sorted by CPU) and
-  `kill -9`s it.
+  checks it out; `fkill` fuzzy-picks a process (sorted by CPU) and sends
+  `SIGTERM`, `fkill9` is the same picker with `SIGKILL` for one that
+  doesn't respond to plain `fkill`.
 - **tmux.conf** - keeps the default `C-b` prefix, adds vim-style pane
   splits/navigation (`| -` to split, `hjkl` to move, `HJKL` to resize),
   vi copy-mode, mouse support, and a statusbar in the same palette as
@@ -313,11 +321,17 @@ this further:
 
 ## CI
 
-Two GitHub Actions workflows run on every push:
+Four GitHub Actions workflows run on every push:
 
-- `lint.yml` - `shellcheck` on every bash script, plus `bash -n`/`zsh -n`
-  syntax checks (`welcome.sh` is checked under both, since it's sourced by
-  either shell).
+- `lint.yml` - `shellcheck --severity=warning` on every bash script, plus
+  `bash -n`/`zsh -n` syntax checks (`welcome.sh` is checked under both,
+  since it's sourced by either shell). `--severity=warning` gates on real
+  bugs (unquoted expansions, unused variables, ...), not shellcheck's
+  info/style suggestions - several of those are deliberate false
+  positives here, e.g. `welcome.sh`'s ASCII art is single-quoted on
+  purpose so its literal `$`/`` ` `` characters don't expand, which
+  SC2016 can't tell apart from a forgotten interpolation. `lint-shell.sh`
+  runs the identical command locally.
 - `test.yml` - `test/welcome-smoke.sh`: stubs every external command and
   hardcoded system path `welcome.sh` reads, then sources it under a real
   pty. Runs under both bash and zsh, since the two bugs it guards against
@@ -325,6 +339,39 @@ Two GitHub Actions workflows run on every push:
   meter bar built from a variable the backgrounded job hadn't populated
   yet) only show up in a genuinely interactive shell - `bash -c`/`zsh -c`
   don't reach the code path that would catch either one.
+- `gitleaks.yml` - scans every push/PR for hardcoded secrets
+  ([gitleaks](https://github.com/gitleaks/gitleaks)) - relevant on a
+  public repo that carries VPN/SSH/K8s-shaped configs, even though the
+  real values all live in gitignored `.local` files (see "Keeping
+  secrets out of a public repo" above).
+- `install-matrix.yml` - runs `install.sh --server --no-docker
+  --no-neovim` (fully non-interactive, flags only) twice, back to back,
+  as root inside a fresh container per supported package manager -
+  `ubuntu:24.04`, `debian:12`, `archlinux:latest`,
+  `voidlinux/voidlinux:latest`. The thing this catches that the other
+  workflows don't: whether `pkg_install` actually resolves the right
+  package name (`delta_pkg`/`fd_pkg`/`docker_pkg`, and every plain entry
+  in `BASE_PKGS`) on each distro, and whether the second run is really
+  the safe no-op `install.sh`'s own comments claim it is.
+
+### Local checks before you push
+
+`pre-commit` (`.pre-commit-config.yaml`) runs the fast subset of the
+above on `git commit`, so an obvious issue - a stray private key, a
+shellcheck warning, invalid YAML - gets caught before it leaves your
+machine instead of after:
+
+```bash
+pip install pre-commit
+pre-commit install       # once per clone - wires up the git hook
+```
+
+`shellcheck`/`shfmt` there target the same `BASH_FILES` list as
+`lint-shell.sh`/`lint.yml`, deliberately excluding the zsh-only scripts
+(`palette.zsh`, the lambda theme, ...) - both tools misreport/misformat
+zsh-specific syntax. `shfmt` itself is `stages: [manual]`, same
+informational-only reasoning as `lint-shell.sh` above; run it by hand
+with `pre-commit run --hook-stage manual shfmt --all-files`.
 
 ## Void Linux notes
 

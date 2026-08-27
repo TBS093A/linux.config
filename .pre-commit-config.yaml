@@ -1,0 +1,49 @@
+# Local pre-commit checks - the fast subset of what CI already runs on
+# every push anyway (.github/workflows/lint.yml, gitleaks.yml), catching
+# the same issues before they leave your machine instead of after.
+#
+# One-time setup per clone: pip install pre-commit && pre-commit install
+#
+# shfmt is intentionally `stages: [manual]`: lint-shell.sh and lint.yml
+# both treat it as informational only (a formatting diff to look at), not
+# a pass/fail gate, since reformatting every existing script to match
+# would be its own large diff, unrelated to whatever you're actually
+# committing. Run it by hand when you want it:
+#   pre-commit run --hook-stage manual shfmt --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: detect-private-key
+
+  # same BASH_FILES list as lint-shell.sh/lint.yml - not extension-based,
+  # since a few of these (bash.config/.bashrc, .bash_profile) have no .sh
+  # suffix, and ZSH_FILES (get.package.manager.zsh, palette.zsh, the
+  # lambda theme, ...) are deliberately excluded: shellcheck --shell=bash
+  # and shfmt both misreport/misformat zsh-specific syntax
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        # --severity=warning: same reasoning as lint.yml/lint-shell.sh -
+        # gate on real bugs, not info/style suggestions (some of those
+        # are deliberate false positives here, e.g. welcome.sh's
+        # single-quoted ASCII art)
+        args: ["--shell=bash", "--severity=warning"]
+        files: ^(install\.sh|make\.symlinks\.sh|help-cmd\.sh|lint-shell\.sh|sshd\.ssh\.config/welcome\.sh|tmux\.config/tmux\.session\.sh|tmux\.config/status-sys\.sh|zsh\.config/install\.zsh\.plugins\.sh|zsh\.config/install\.zsh\.sh|bash\.config/\.bashrc|bash\.config/\.bash_profile|test/welcome-smoke\.sh)$
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.13.1-1
+    hooks:
+      - id: shfmt
+        args: ["-d"]
+        files: ^(install\.sh|make\.symlinks\.sh|help-cmd\.sh|lint-shell\.sh|sshd\.ssh\.config/welcome\.sh|tmux\.config/tmux\.session\.sh|tmux\.config/status-sys\.sh|zsh\.config/install\.zsh\.plugins\.sh|zsh\.config/install\.zsh\.sh|bash\.config/\.bashrc|bash\.config/\.bash_profile|test/welcome-smoke\.sh)$
+        stages: [manual]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks

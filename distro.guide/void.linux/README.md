@@ -11,9 +11,9 @@
 +QmQQmpvvnv; _yYsyQQWUUQQQm #QmQ#:QQQWUV$QQm.   Shell: zsh 5.9
  -QQWQWpvvowZ?.wQQQE==<QWWQ/QWQW.QQWW(: jQWQE   Resolution: 640x480
   -$QQQQmmU'  jQQQ@+=<QWQQ)mQQQ.mQQQC+;jWQQ@'   Terminal: /dev/pts/10
-   -$WQ8YnI:   QWQQwgQQWV`mWQQ.jQWQQgyyWW@!     
-     -1vvnvv.     `~+++`        ++|+++          
-      +vnvnnv,                 `-|===           
+   -$WQ8YnI:   QWQQwgQQWV`mWQQ.jQWQQgyyWW@!
+     -1vvnvv.     `~+++`        ++|+++
+      +vnvnnv,                 `-|===
        +vnvnvns.           .      :=-
         -Invnvvnsi..___..=sv=.     `
           +Invnvnvnnnnnnnnvvnn;.

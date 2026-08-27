@@ -1,0 +1,81 @@
+name: install-matrix
+
+# Cross-distro smoke test for install.sh - the thing lint.yml/test.yml
+# don't cover at all: does pkg_install actually resolve the right package
+# name (delta_pkg/fd_pkg/docker_pkg, plus every plain entry in BASE_PKGS)
+# on each of the package managers install.sh claims to support, and does
+# the fully-flagged non-interactive path (--cloud-provider=/--server-type=/
+# --no-docker/--no-neovim, documented in install.sh's own usage header for
+# Ansible/cloud-init use) actually run clean end to end.
+#
+# Runs the whole job as root inside each distro's own official base image
+# (no sudo needed - see the note on make.symlinks.sh about sudo not
+# resetting $HOME; that bug class doesn't apply here since this is a
+# genuine root login, not a mid-script sudo escalation, same as any real
+# cloud-init/Ansible bootstrap of a fresh box).
+#
+# --no-docker/--no-neovim keep this fast and focused on package-name
+# correctness: Docker needs a daemon this container doesn't have, and
+# neovim's vim-plug bootstrap is slow and network-heavy for what it'd add
+# here - both are already exercised by hand, this is about the distro
+# matrix specifically.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu
+            image: ubuntu:24.04
+          - distro: debian
+            image: debian:12
+          - distro: archlinux
+            image: archlinux:latest
+          - distro: voidlinux
+            image: voidlinux/voidlinux:latest
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      # actions/checkout needs git in the container already - none of
+      # these base images ship it, so it goes in before checkout can run
+      - name: Install git
+        run: |
+          case "${{ matrix.distro }}" in
+            ubuntu|debian)
+              apt-get update -qq
+              apt-get install -y -qq git
+              ;;
+            archlinux)
+              # fresh archlinux:latest containers routinely have an
+              # outdated keyring, which fails signature checks on
+              # anything synced afterwards - refresh it first
+              pacman -Sy --noconfirm archlinux-keyring
+              pacman -S --noconfirm git
+              ;;
+            voidlinux)
+              # this image's own xbps binary/repodata seed is old - self
+              # update xbps before anything else, same as any real Void
+              # bootstrap would
+              xbps-install -Suy xbps
+              xbps-install -Sy git
+              ;;
+          esac
+
+      - uses: actions/checkout@v4
+
+      - name: install.sh --server (non-interactive)
+        run: |
+          ./install.sh --server --no-docker --no-neovim \
+            --cloud-provider=CI --server-type=DEV
+
+      - name: install.sh is idempotent - re-run should be a safe no-op
+        run: |
+          ./install.sh --server --no-docker --no-neovim \
+            --cloud-provider=CI --server-type=DEV

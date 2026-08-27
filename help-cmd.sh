@@ -94,9 +94,10 @@ if _have fzf; then
     fi
     _row "Alt-C"               "fuzzy-cd into a subdirectory"
     _row "fco"                 "fuzzy git checkout - pick a local/remote branch"
-    _row "fkill"                "fuzzy-pick a process (by CPU), confirm, kill -9 it"
+    _row "fkill"                "fuzzy-pick a process (by CPU), kill -TERM it"
+    _row "fkill9"               "same picker, kill -9/SIGKILL it (when fkill doesn't stick)"
 else
-    _row "fzf"                 "not installed - Ctrl-R/T, Alt-C, fco, fkill need it"
+    _row "fzf"                 "not installed - Ctrl-R/T, Alt-C, fco, fkill/fkill9 need it"
 fi
 
 _section "tmux"
