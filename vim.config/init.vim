@@ -456,8 +456,20 @@ EOF
       " run neovim with nerd tree automatically
         " au VimEnter *  NERDTree<Down>
 
-      " run nvim-tree automatically
+      " auto-open UI on startup, in this order: terminal, tree, avante.
+      " Order matters here, not just cosmetically - ToggleTerm splits
+      " whatever window is currently focused, so it has to fire first,
+      " while that's still the one single full-width buffer nvim opened
+      " with; NvimTreeToggle/AvanteToggle each carve out their own
+      " dedicated sidebar column (left/right) regardless of focus, so
+      " their relative order doesn't have the same constraint. All three
+      " plugins' own setup() calls above are registered earlier in this
+      " file, so they've already run by the time these fire (Neovim runs
+      " same-event autocmds in registration order). Cursor ends up in
+      " avante's sidebar at the end, since it's the last one opened.
+        au VimEnter * ToggleTerm
         au VimEnter * NvimTreeToggle
+        au VimEnter * AvanteToggle
 
     " shortcut mapping
 

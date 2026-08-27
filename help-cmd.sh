@@ -114,6 +114,10 @@ _row "prefix + I"             "TPM: (re)install tmux-yank"
 _row "status-right"           "CPU/RAM always shown, GPU appended if present (status-sys.sh)"
 
 if _have nvim; then
+    _section "Neovim: startup layout"
+    _row "opens automatically"  "terminal (bottom split) -> tree (left) -> avante (right sidebar)"
+    _row "cursor lands in"      "avante's sidebar - it's opened last"
+
     _section "Neovim: buffers/tabs (barbar.nvim)"
     _row "Ctrl-s"              "save and close the buffer"
     _row "Alt-, / Alt-."       "previous / next buffer"
@@ -137,7 +141,7 @@ if _have nvim; then
     _row "Ctrl-v"              "open in a vertical split"
     _row "Ctrl-x"              "open in a horizontal split"
 
-    _section "Neovim: terminal (ToggleTerm) + multi-cursor (vim-visual-multi)"
+    _section "Neovim: terminal (ToggleTerm, opens on startup) + multi-cursor (vim-visual-multi)"
     _row "Alt-t"               "toggle a terminal pane (normal + insert mode)"
     _row "Ctrl-t (in terminal)" "toggle the terminal back off"
     _row "Ctrl-\\ Ctrl-n"      "exit terminal mode (nvim default)"
@@ -160,7 +164,7 @@ if _have nvim; then
     _row ":Telescope find_files" "fuzzy file finder - no keybind, run as a command"
     _row ":Telescope live_grep"  "fuzzy grep across the project"
 
-    _section "Neovim: AI (avante.nvim - Cursor-style ask/edit)"
+    _section "Neovim: AI (avante.nvim - Cursor-style ask/edit, opens on startup)"
     _row "\\aa"                 "open the AI sidebar and ask a question"
     _row "\\at"                 "toggle the sidebar"
     _row "\\ae"                 "edit the selected code (visual mode) - returns a diff"
