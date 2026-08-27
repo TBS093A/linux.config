@@ -144,7 +144,7 @@ if [[ $PKG_MGR == apt-get ]]; then
 fi
 
 BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat \
-    "$(delta_pkg)" yazi ripgrep "$(fd_pkg)" jq yq lazygit btop k9s nvtop)
+    "$(delta_pkg)" yazi ripgrep "$(fd_pkg)" jq yq lazygit btop k9s nvtop dust duf procs)
 
 # neovim: --local profile default, --server skips it - --neovim/--no-neovim
 # overrides either way, so this decision doesn't need a --local/--server

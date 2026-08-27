@@ -105,13 +105,15 @@ instead of the tracked one:
 `help-cmd` prints all of this from the shell itself (colored to match
 `welcome.sh`) - run it any time you forget what's here. `install.sh` pulls
 in `zoxide`, `direnv`, `eza`, `bat`, `delta`, `yazi`, `ripgrep`, `fd`, `jq`,
-`yq`, `lazygit`, `btop`, `k9s`, and `nvtop` alongside the base packages
-(`--local` adds `shellcheck`/`shfmt` on top, for editing this repo itself),
-plus `mise` via its own official installer (see below); each piece below
-only activates if its tool is actually present (`command -v` guarded), so
-nothing breaks on a box where one of them failed to install - not every
-package manager carries all of these (`lazygit`/`btop`/`k9s` in particular
-aren't in every distro's default repos), and `nvtop` is installed
+`yq`, `lazygit`, `btop`, `k9s`, `nvtop`, `dust`, `duf`, and `procs` alongside
+the base packages (`--local` adds `shellcheck`/`shfmt` on top, for editing
+this repo itself), plus `mise` via its own official installer (see below);
+each piece below only activates if its tool is actually present
+(`command -v` guarded), so nothing breaks on a box where one of them failed
+to install - not every package manager carries all of these
+(`lazygit`/`btop`/`k9s`/`dust`/`duf`/`procs` in particular aren't in every
+distro's default repos - RHEL/yum-based boxes are the most likely to be
+missing them), and `nvtop` is installed
 unconditionally even on a box with no GPU (it's harmless there, just
 useless - no separate `--gpu` flag or detection to maintain).
 
@@ -134,6 +136,11 @@ useless - no separate `--gpu` flag or detection to maintain).
   aliases below, not a replacement for them.
 - **btop** - `btop` for an interactive CPU/RAM/process view; the always-on
   numbers in the login banner and tmux statusbar cover the at-a-glance case.
+- **dust / duf / procs** - modern replacements for `du`/`df`/`ps`: `dust`
+  shows directory/file sizes as a sorted ASCII tree, `duf` lists disk
+  usage/free per mount in a cleaner table, and `procs` lists processes with
+  readable columns and a tree view. No aliases over the originals - all
+  three are new commands you run directly, same as `rg`/`fd`.
 - **k9s / nvtop** - `k9` (= `k9s`) for an interactive Kubernetes TUI, `gpu`
   (= `nvtop`) for interactive GPU monitoring. Both installed unconditionally
   (see above) - `welcome.sh` already only *shows* K8s/GPU info when a

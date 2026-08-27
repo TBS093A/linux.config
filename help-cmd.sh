@@ -171,6 +171,15 @@ if _have btop; then
     _row "btop"                "interactive CPU/RAM/process monitor"
     _row "  q"                  "quit"
 fi
+if _have dust; then
+    _row "dust"                "like du - directory/file sizes, sorted, ASCII tree"
+fi
+if _have duf; then
+    _row "duf"                 "like df - disk usage/free, all mounts, cleaner output"
+fi
+if _have procs; then
+    _row "procs"               "like ps - readable columns, tree view, search by name"
+fi
 if _have docker; then
     _row "docker"              "installed, no alias - plain docker (install.sh --server, optional)"
     _row "docker ps"            "running containers - also shown in welcome.sh's banner"
