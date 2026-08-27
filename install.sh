@@ -138,6 +138,18 @@ fd_pkg() {
     esac
 }
 
+# Arch bundles cargo into its combined "rust" package instead of shipping it
+# separately - only needed alongside neovim, for avante.nvim's build step
+# (see vim.config/init.vim): `make` there compiles a small Rust component,
+# falling back to a prebuilt binary download when one matches the platform,
+# so this is a fallback of its own, not a hard requirement either way.
+cargo_pkg() {
+    case "$PKG_MGR" in
+        pacman) echo "rust" ;;
+        *)      echo "cargo" ;;
+    esac
+}
+
 if [[ $PKG_MGR == apt-get ]]; then
     log "Refreshing apt package lists"
     _sudo apt-get update -qq || warn "apt-get update failed - continuing with whatever's cached"
@@ -153,7 +165,7 @@ install_neovim=0
 [[ $PROFILE == local ]] && install_neovim=1
 [[ $NEOVIM_ARG == 1 ]] && install_neovim=1
 [[ $NEOVIM_ARG == 0 ]] && install_neovim=0
-(( install_neovim )) && BASE_PKGS+=(neovim)
+(( install_neovim )) && BASE_PKGS+=(neovim "$(cargo_pkg)")
 
 if [[ $PROFILE == local ]]; then
     BASE_PKGS+=(shellcheck shfmt)
@@ -383,7 +395,14 @@ if command -v nvim >/dev/null 2>&1; then
     # is what makes PlugInstall itself reliable, hence two passes.
     timeout 30 nvim --headless "+qa" >/dev/null 2>&1 || true
     log "Bootstrapping nvim: installing plugins (PlugInstall)"
-    timeout 120 nvim --headless -c 'PlugInstall --sync' -c 'qa' 2>/dev/null || log "nvim plugin bootstrap timed out/failed - run nvim once manually to retry"
+    # avante.nvim's own post-install step runs backgrounded (see the 'do'
+    # comment in vim.config/init.vim) specifically so it can't stall this -
+    # a from-source build of its native component is slow (15-20+ minutes
+    # isn't unusual) and, worse, outlives `timeout` here regardless of the
+    # value given: make/cargo fork children that don't reliably receive
+    # its signal. 150s is normal headroom for everything else (plain git
+    # clones), not a number chosen around avante.
+    timeout 150 nvim --headless -c 'PlugInstall --sync' -c 'qa' 2>/dev/null || log "nvim plugin bootstrap timed out/failed - run nvim once manually to retry"
 fi
 
 if (( DO_SYSTEM )); then

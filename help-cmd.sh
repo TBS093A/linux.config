@@ -159,6 +159,16 @@ if _have nvim; then
     _row "on save (:w)"        "auto-formats + strips trailing whitespace (not Makefiles)"
     _row ":Telescope find_files" "fuzzy file finder - no keybind, run as a command"
     _row ":Telescope live_grep"  "fuzzy grep across the project"
+
+    _section "Neovim: AI (avante.nvim - Cursor-style ask/edit)"
+    _row "\\aa"                 "open the AI sidebar and ask a question"
+    _row "\\at"                 "toggle the sidebar"
+    _row "\\ae"                 "edit the selected code (visual mode) - returns a diff"
+    _row "co / ct / ca"        "in a diff: choose ours / theirs / all theirs"
+    _row "\\a?"                 "pick a model for the current provider"
+    _row ":AvanteSwitchProvider claude|openai|grok" "switch which one you're talking to"
+    _row "ANTHROPIC/OPENAI/XAI_API_KEY" "set in zsh.config/.zshrc.local, not tracked (see .example)"
+    _row "first install"       "builds in the background - \$XDG_CACHE_HOME/nvim/avante-nvim-build.log if \\aa errors right away"
 else
     _section "Neovim"
     _row "nvim"                "not installed - install.sh --local includes it"

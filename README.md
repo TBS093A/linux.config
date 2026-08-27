@@ -106,7 +106,10 @@ hosts, internal IPs, k8s aliases, ...) goes in a gitignored `.local` file
 instead of the tracked one:
 
 - `zsh.config/.zshrc.local` (see `.zshrc.local.example`) - sourced
-  automatically by `.zshrc` if present.
+  automatically by `.zshrc` if present. Also where avante.nvim's
+  `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`XAI_API_KEY` go (see Day-to-day
+  extras below) - same file, same reasoning, just credentials instead of
+  labels/IPs.
 - `vpn.config/vpns.local` (see `vpns.local.example`) - appended to
   `VPNS_LIST` automatically by `connect.sh` if present.
 - Per-host SSH shortcuts (`ssh node000` instead of typing out a user/IP/
@@ -187,6 +190,24 @@ useless - no separate `--gpu` flag or detection to maintain).
   repo), locally, before you push. `shfmt`, if installed, also prints a
   formatting diff - informational only, not a pass/fail gate, since
   reformatting every existing script to match would be its own large diff.
+- **avante.nvim (Cursor-style AI sidebar, neovim only)** - `\aa` asks a
+  question, `\ae` edits the selected code and hands back a diff to
+  accept/reject (`help-cmd` has the full keybind list) - see
+  `vim.config/init.vim` for the actual setup. Wired for Claude, OpenAI,
+  and Grok (the last one as a custom OpenAI-compatible provider, since
+  avante has no native one for it); keys go in `zsh.config/.zshrc.local`
+  as `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`XAI_API_KEY` (see
+  `.zshrc.local.example`), same pattern as everything else in "Keeping
+  secrets out of a public repo" above. Its native component either
+  downloads a prebuilt binary or, failing that, compiles one from source
+  with `cargo` (`install.sh` installs it alongside neovim only) - either
+  way that step runs backgrounded on purpose, not inline: a cold
+  from-source build ran 15-20+ minutes by hand, and `timeout` can't
+  reliably bound it either (`make`/`cargo` fork children of their own
+  that don't consistently receive its signal) - so `install.sh` always
+  finishes on schedule, and avante just isn't usable until that catches
+  up on its own (`$XDG_CACHE_HOME/nvim/avante-nvim-build.log` has the
+  progress).
 - **Nerd Font (for eza's icons)** - `eza --icons` shows tofu/`?` boxes
   instead of file-type icons without one. Fonts render client-side, so
   which box needs the font depends on how you're looking at the

@@ -25,6 +25,15 @@
 # export SERVER_TYPE="staging"
 # export SERVER_TYPE_COLOR="51"
 
+# avante.nvim (Neovim's AI sidebar, see vim.config/init.vim) reads these
+# directly at nvim startup - ANTHROPIC_API_KEY/OPENAI_API_KEY are avante's
+# own built-in names for Claude/ChatGPT; XAI_API_KEY is this config's own
+# name for Grok (wired up as an OpenAI-compatible custom provider, since
+# avante has no native one for it).
+# export ANTHROPIC_API_KEY="sk-ant-..."
+# export OPENAI_API_KEY="sk-..."
+# export XAI_API_KEY="xai-..."
+
 # Per-host SSH shortcuts (ssh node000, ...) go in ~/.ssh/config as Host
 # blocks instead of aliases here - see README's "Keeping secrets out of a
 # public repo" section:

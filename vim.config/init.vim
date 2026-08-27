@@ -168,6 +168,31 @@ call plug#begin()
   " https://github.com/akinsho/toggleterm.nvim
     Plug 'akinsho/toggleterm.nvim', {'tag' : '*'}
 
+  " avante.nvim - Cursor-style AI sidebar: ask/edit against a selection,
+  " get a diff back, accept/reject it in place. Claude/OpenAI/Grok all
+  " configured below (nvim-lua/plenary.nvim above is a dep it shares with
+  " telescope already).
+  "
+  " 'do' backgrounds `make` instead of running it inline: it downloads a
+  " prebuilt binary for avante's small Rust component when one matches
+  " the platform, but falls back to building one from source (needs
+  " cargo - install.sh installs it alongside neovim, see cargo_pkg()
+  " there) when it doesn't, and that fallback is NOT quick - verified by
+  " hand, a cold from-source build ran 15-20+ minutes and over 1GB of
+  " build artifacts on ordinary hardware. Worse, `timeout` in install.sh
+  " can't bound that either - make/cargo fork children of their own that
+  " don't reliably receive/forward its signal, so a blocking `do: 'make'`
+  " here risks hanging install.sh's PlugInstall step well past any
+  " timeout wrapped around it. Backgrounding it means install.sh always
+  " finishes on schedule; avante just isn't usable until the build
+  " catches up on its own - check ~/.cache/nvim/avante-nvim-build.log, or
+  " just retry :AvanteAsk again in a few minutes on a first install.
+  " https://github.com/yetone/avante.nvim
+    Plug 'MunifTanjim/nui.nvim'
+    Plug 'MeanderingProgrammer/render-markdown.nvim'
+    Plug 'yetone/avante.nvim', { 'branch': 'main',
+      \ 'do': 'mkdir -p ' . stdpath('cache') . ' && nohup make >' . stdpath('cache') . '/avante-nvim-build.log 2>&1 &' }
+
   " NeoVIM customization section
 
     " set font for gui
@@ -313,6 +338,61 @@ call plug#begin()
       " toggleterm loading
 
         au VimEnter * lua require("toggleterm").setup()
+
+      " render-markdown loading (avante's chat sidebar renders as
+      " filetype "Avante" - included here so it gets the same treatment
+      " as real markdown, not just .md files)
+
+        au VimEnter * lua require("render-markdown").setup({ file_types = { "markdown", "Avante" } })
+
+      " avante.nvim loading - sidebar needs the global statusline to
+      " render correctly (see avante's own README), and its setup runs
+      " on the 'User avante.nvim' event specifically (fired once vim-plug
+      " has it fully loaded) rather than VimEnter like everything else
+      " above - that's vim-plug's own documented hookup for this plugin
+
+        au VimEnter * lua vim.opt.laststatus = 3
+
+        autocmd! User avante.nvim
+        lua << EOF
+        require('avante').setup({
+          provider = "claude",
+          providers = {
+            -- ANTHROPIC_API_KEY - see zsh.config/.zshrc.local.example
+            claude = {
+              endpoint = "https://api.anthropic.com",
+              model = "claude-sonnet-5",
+              extra_request_body = {
+                temperature = 0.75,
+                max_tokens = 8192,
+              },
+            },
+            -- OPENAI_API_KEY - see zsh.config/.zshrc.local.example. Model
+            -- name goes stale fast; swap for whatever you actually have
+            -- access to (:AvanteModels lists what avante knows about)
+            openai = {
+              endpoint = "https://api.openai.com/v1",
+              model = "gpt-4o",
+              extra_request_body = {
+                temperature = 0.75,
+                max_tokens = 8192,
+              },
+            },
+            -- Grok isn't a built-in avante provider, but xAI's API is
+            -- OpenAI-compatible, so __inherited_from = "openai" wires it
+            -- up the same way avante's own docs do for openrouter/groq/
+            -- deepseek/etc. XAI_API_KEY - see .zshrc.local.example; check
+            -- https://docs.x.ai/docs/models for a model your account
+            -- actually has access to
+            grok = {
+              __inherited_from = "openai",
+              api_key_name = "XAI_API_KEY",
+              endpoint = "https://api.x.ai/v1",
+              model = "grok-4",
+            },
+          },
+        })
+EOF
 
   " toggleterm configuration
 
