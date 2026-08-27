@@ -124,6 +124,11 @@ if _have nvim; then
     _row "in the terminal"     "Ctrl-\\ Ctrl-n first - terminal mode eats Ctrl-w otherwise"
     _row "\\af"                 "jump straight to/from avante's sidebar, from anywhere"
     _row "Tab / Shift-Tab"     "in avante's sidebar: switch between its own chat/files/input panes"
+    _row "Ctrl-w F"            "jump straight to the file tree - opens it first if it's closed"
+    _row "Ctrl-w T"            "jump straight to the terminal - opens it first if it's closed"
+    _row "Ctrl-w C"            "jump straight to avante (its input if open, else its chat)"
+    _row "Ctrl-w E"            "jump to the editor - the first (top-left) split, if there are several"
+    _row "Ctrl-w E1..E9"       "jump to that specific editor split, same top-left-to-bottom-right order"
 
     _section "Neovim: buffers/tabs (barbar.nvim)"
     _row "Ctrl-s"              "save and close the buffer"

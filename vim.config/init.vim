@@ -501,6 +501,83 @@ EOF
         " Ctrl + w k takes you up a window
         " Ctrl + w l takes you right a window
 
+        " jump straight to a named pane instead of hunting for it with
+        " h/j/k/l - each opens that pane first if it isn't already, so
+        " these always land somewhere rather than doing nothing. Note
+        " Ctrl-w T and Ctrl-w F both shadow real (if obscure) nvim
+        " defaults - move window to new tab, and edit file-under-cursor
+        " in a new tab, respectively - a deliberate trade, chosen for
+        " this layout's 4 named panes over those two rarely-used ones.
+        "   Ctrl-w F        - the file tree (NvimTree)
+        "   Ctrl-w T        - the terminal
+        "   Ctrl-w C        - avante (its input if open, else its chat)
+        "   Ctrl-w E        - the editor - first one, top-left, if split
+        "   Ctrl-w E1..E9   - that specific editor split, same ordering
+        lua << EOF
+        local function find_win(pred)
+          for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+            if pred(vim.api.nvim_win_get_buf(w)) then return w end
+          end
+        end
+
+        local function jump_or_open(pred, open_cmd)
+          local w = find_win(pred)
+          if not w then
+            vim.cmd(open_cmd)
+            w = find_win(pred)
+          end
+          if w then vim.api.nvim_set_current_win(w) end
+        end
+
+        -- everything that isn't tree/avante's own panes and isn't a
+        -- terminal counts as "editor", sorted top-to-bottom then
+        -- left-to-right so E/E1 is always the top-left-most split
+        local EDITOR_EXCLUDE = { NvimTree = true, Avante = true, AvanteInput = true, AvanteSelectedFiles = true }
+        local function editor_wins()
+          local wins = {}
+          for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+            local buf = vim.api.nvim_win_get_buf(w)
+            if vim.bo[buf].buftype == '' and not EDITOR_EXCLUDE[vim.bo[buf].filetype] then
+              table.insert(wins, w)
+            end
+          end
+          table.sort(wins, function(a, b)
+            local pa, pb = vim.api.nvim_win_get_position(a), vim.api.nvim_win_get_position(b)
+            if pa[1] ~= pb[1] then return pa[1] < pb[1] end
+            return pa[2] < pb[2]
+          end)
+          return wins
+        end
+
+        vim.keymap.set('n', '<C-w>F', function()
+          jump_or_open(function(b) return vim.bo[b].filetype == 'NvimTree' end, 'NvimTreeOpen')
+        end, { silent = true, desc = 'Jump to the file tree' })
+
+        vim.keymap.set('n', '<C-w>T', function()
+          jump_or_open(function(b) return vim.bo[b].buftype == 'terminal' end, 'ToggleTerm')
+        end, { silent = true, desc = 'Jump to the terminal' })
+
+        vim.keymap.set('n', '<C-w>C', function()
+          jump_or_open(function(b)
+            local ft = vim.bo[b].filetype
+            return ft == 'AvanteInput' or ft == 'Avante'
+          end, 'AvanteToggle')
+        end, { silent = true, desc = 'Jump to avante' })
+
+        vim.keymap.set('n', '<C-w>E', function()
+          local w = editor_wins()[1]
+          if w then vim.api.nvim_set_current_win(w) end
+        end, { silent = true, desc = 'Jump to the first (top-left) editor split' })
+
+        for i = 1, 9 do
+          vim.keymap.set('n', '<C-w>E' .. i, function()
+            local wins = editor_wins()
+            local w = wins[i] or wins[1]
+            if w then vim.api.nvim_set_current_win(w) end
+          end, { silent = true, desc = 'Jump to editor split #' .. i })
+        end
+EOF
+
         " NvimTree shortcuts
           map <C-b> :NvimTreeToggle<CR>
 
