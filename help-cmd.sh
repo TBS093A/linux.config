@@ -116,7 +116,7 @@ _row "status-right"           "CPU/RAM always shown, GPU appended if present (st
 if _have nvim; then
     _section "Neovim: startup layout"
     _row "opens automatically"  "terminal (bottom split) -> tree (left) -> avante (right sidebar)"
-    _row "cursor lands in"      "avante's sidebar - it's opened last"
+    _row "cursor lands in"      "the editor - focus is restored there after all three open"
 
     _section "Neovim: buffers/tabs (barbar.nvim)"
     _row "Ctrl-s"              "save and close the buffer"

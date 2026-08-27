@@ -456,20 +456,33 @@ EOF
       " run neovim with nerd tree automatically
         " au VimEnter *  NERDTree<Down>
 
-      " auto-open UI on startup, in this order: terminal, tree, avante.
-      " Order matters here, not just cosmetically - ToggleTerm splits
-      " whatever window is currently focused, so it has to fire first,
-      " while that's still the one single full-width buffer nvim opened
-      " with; NvimTreeToggle/AvanteToggle each carve out their own
-      " dedicated sidebar column (left/right) regardless of focus, so
-      " their relative order doesn't have the same constraint. All three
-      " plugins' own setup() calls above are registered earlier in this
-      " file, so they've already run by the time these fire (Neovim runs
-      " same-event autocmds in registration order). Cursor ends up in
-      " avante's sidebar at the end, since it's the last one opened.
-        au VimEnter * ToggleTerm
-        au VimEnter * NvimTreeToggle
-        au VimEnter * AvanteToggle
+      " auto-open UI on startup, in this order: terminal, tree, avante,
+      " then focus back on the editor - not the last thing opened, which
+      " is where it'd otherwise land. Order matters here, not just
+      " cosmetically - ToggleTerm splits whatever window is currently
+      " focused, so it has to fire first, while that's still the one
+      " single full-width buffer nvim opened with; NvimTreeToggle/
+      " AvanteToggle each carve out their own dedicated sidebar column
+      " (left/right) regardless of focus, so their relative order
+      " doesn't have the same constraint. All three plugins' own setup()
+      " calls above are registered earlier in this file, so they've
+      " already run by the time this fires (Neovim runs same-event
+      " autocmds in registration order) - a single autocmd, not three,
+      " so the editor window handle can be captured before any of this
+      " opens and restored after, rather than guessing at it positionally
+      " (`wincmd t`/`w` would land on whichever of tree/editor/avante
+      " ends up visually top-left/first, not reliably the editor).
+        lua << EOF
+        vim.api.nvim_create_autocmd('VimEnter', {
+          callback = function()
+            local editor_win = vim.api.nvim_get_current_win()
+            vim.cmd('ToggleTerm')
+            vim.cmd('NvimTreeToggle')
+            vim.cmd('AvanteToggle')
+            vim.api.nvim_set_current_win(editor_win)
+          end,
+        })
+EOF
 
     " shortcut mapping
 
