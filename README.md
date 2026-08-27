@@ -194,8 +194,8 @@ useless - no separate `--gpu` flag or detection to maintain).
   repo), locally, before you push. `shfmt`, if installed, also prints a
   formatting diff - informational only, not a pass/fail gate, since
   reformatting every existing script to match would be its own large diff.
-- **avante.nvim (Cursor-style AI sidebar, neovim only)** - `\aa` asks a
-  question, `\ae` edits the selected code and hands back a diff to
+- **avante.nvim (Cursor-style AI sidebar, neovim only)** - `Space aa` asks
+  a question, `Space ae` edits the selected code and hands back a diff to
   accept/reject (`help-nvim` has the full keybind list) - see
   `vim.config/init.vim` for the actual setup. Wired for Claude, OpenAI,
   and Grok (the last one as a custom OpenAI-compatible provider, since

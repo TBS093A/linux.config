@@ -5,6 +5,13 @@
 # once the nvim section grew past a quick glance - help-cmd's "Also on this
 # box" section points here instead of listing all of it inline.
 #
+# Leader is Space (set at the top of init.vim) - "Space xy" below means
+# press Space, release, then x, then y, same as any other multi-key vim
+# sequence (not held down together). which-key.nvim shows a live popup of
+# whatever's available the moment you press Space (or Ctrl-w, or g) and
+# pause, so none of this actually needs memorizing - this file is the
+# offline/searchable version of the same information.
+#
 # Aliased as `help-nvim` via .zshrc (see make.symlinks.sh) - repo-relative,
 # not installed onto PATH, same pattern as help-cmd/tmux-session.
 
@@ -34,11 +41,15 @@ _section "Startup layout"
 _row "opens automatically"  "terminal (bottom split) -> tree (left) -> avante (right sidebar)"
 _row "cursor lands in"      "the editor - focus is restored there after all three open"
 
+_section "Discoverability (which-key.nvim)"
+_row "press Space, wait"    "popup of everything available next - groups: a/b/c/f/g/m (below)"
+_row "press Ctrl-w, wait"   "same popup, scoped to window commands (h/j/k/l/w/F/T/C/E...)"
+
 _section "Moving between panes (tree / editor / terminal / avante)"
 _row "Ctrl-w h/j/k/l"      "move to the pane left/down/up/right (nvim default, works everywhere)"
 _row "Ctrl-w w"            "cycle through all panes"
 _row "in the terminal"     "Ctrl-\\ Ctrl-n first - terminal mode eats Ctrl-w otherwise"
-_row "\\af"                 "jump straight to/from avante's sidebar, from anywhere"
+_row "Space af"             "jump straight to/from avante's sidebar, from anywhere"
 _row "Tab / Shift-Tab"     "in avante's sidebar: switch between its own chat/files/input panes"
 _row "Ctrl-w F"            "jump straight to the file tree - opens it first if it's closed"
 _row "Ctrl-w T"            "jump straight to the terminal - opens it first if it's closed"
@@ -54,10 +65,11 @@ _row "Alt-1..9 / Alt-0"    "jump to buffer 1-9 / last"
 _row "Alt-p"               "pin the current buffer"
 _row "Alt-c"               "close current buffer"
 _row "Alt-Shift-c"         "restore last closed buffer"
-_row "Ctrl-p"              "pick a buffer to delete (BufferPickDelete)"
-_row "Space-b b/d/l/w"     "reorder buffers: by number/dir/language/window"
+_row "Ctrl-p"              "pick a buffer to jump to (BufferPick)"
+_row "Space bx"             "pick a buffer to close (BufferPickDelete)"
+_row "Space bb/bd/bl/bw"    "reorder buffers: by number/dir/language/window"
 
-_section "File tree (NvimTree, Ctrl-b toggles, opens on startup)"
+_section "File tree (NvimTree, opens on startup - Ctrl-w F jumps to it)"
 _row "H / I"               "toggle hidden files / gitignored files"
 _row "a"                   "add a file (or folder, trailing /)"
 _row "Ctrl-r"              "rename"
@@ -68,18 +80,19 @@ _row "Ctrl-t"              "open in a new tab"
 _row "Ctrl-v"              "open in a vertical split"
 _row "Ctrl-x"              "open in a horizontal split"
 
-_section "Terminal (ToggleTerm, opens on startup) + multi-cursor (vim-visual-multi)"
-_row "Alt-t"               "toggle a terminal pane (normal + insert mode)"
-_row "Ctrl-t (in terminal)" "toggle the terminal back off"
-_row "Ctrl-\\ Ctrl-n"      "exit terminal mode (nvim default)"
-_row "Ctrl-n"              "select word under cursor (or selection, in visual)"
+_section "Terminal (ToggleTerm, opens on startup)"
+_row "Alt-t"               "toggle it - same key everywhere: normal, insert, and inside it"
+_row "Ctrl-\\ Ctrl-n"      "exit terminal (insert) mode without closing it (nvim default)"
+
+_section "Multi-cursor (vim-visual-multi)"
+_row "Ctrl-n"              "select word under cursor (or selection, in visual) - the common case"
 _row "Ctrl-Down / Ctrl-Up" "add cursors vertically down / up (normal mode)"
 _row "Q"                   "remove a cursor/region (normal mode)"
 _row "n / N / q"           "next / previous / skip cursor (normal mode)"
-_row "\\\\A"                "select all occurrences of the word"
-_row "\\\\/"                "create cursors from a regex search"
-_row "\\\\\\"               "add a single cursor at the current position"
-_row "\\\\gS"               "reselect regions from the last session"
+_row "Space ma"             "select all occurrences of the word"
+_row "Space mf"             "create cursors from a regex search"
+_row "Space ms"             "add a single cursor at the current position"
+_row "Space mr"             "reselect regions from the last session"
 _row "Ctrl-LeftMouse"      "add a cursor where clicked"
 _row "Ctrl-RightMouse"     "select the word where clicked"
 _row "Alt-Ctrl-RightMouse" "create a column of cursors from here to where clicked"
@@ -90,22 +103,24 @@ _row "Shift-RightClick+drag+Enter" "copy selection to the host/Windows clipboard
 _row "Ctrl-Shift-V"        "paste from the host/Windows clipboard"
 _row "Ctrl-Space"          "Jedi completion - needs :set nopaste first"
 _row "on save (:w)"        "auto-formats + strips trailing whitespace (not Makefiles)"
-_row ":Telescope find_files" "fuzzy file finder - no keybind, run as a command"
-_row ":Telescope live_grep"  "fuzzy grep across the project"
+
+_section "Find (Telescope)"
+_row "Space ff"             "fuzzy file finder"
+_row "Space fg"             "fuzzy grep across the project"
 
 _section "Code navigation (jedi-vim, tagbar - Python-aware)"
-_row "\\d"                  "go to definition"
-_row "\\g"                  "go to assignment"
-_row "\\n"                  "show usages"
-_row "\\r"                  "rename (all usages)"
+_row "Space cd"             "go to definition"
+_row "Space ca"             "go to assignment"
+_row "Space cu"             "show usages"
+_row "Space cr"             "rename (all usages)"
 _row "K"                    "show documentation for what's under the cursor"
-_row ":TagbarToggle"        "ctags outline sidebar (classes/functions in the file) - no keybind"
+_row "Space ct"             "ctags outline sidebar (classes/functions in the file)"
 
 _section "Git diff in the sign column (vim-gitgutter)"
 _row "]c / [c"             "jump to the next / previous changed hunk"
-_row "\\hs"                 "stage the hunk under the cursor"
-_row "\\hu"                 "undo (revert) the hunk under the cursor"
-_row "\\hp"                 "preview the hunk's diff in a popup"
+_row "Space gs"             "stage the hunk under the cursor"
+_row "Space gu"             "undo (revert) the hunk under the cursor"
+_row "Space gp"             "preview the hunk's diff in a popup"
 
 _section "Alignment + snippets (vim-easy-align, UltiSnips)"
 _row "ga<motion/selection>" "interactive align on a character, e.g. gaip= aligns = signs in the paragraph"
@@ -113,13 +128,13 @@ _row "Tab"                  "expand a snippet trigger, or jump to the next place
 _row "Ctrl-j / Ctrl-k"      "jump to the next / previous snippet placeholder"
 
 _section "AI (avante.nvim - Cursor-style ask/edit, opens on startup)"
-_row "\\aa"                 "open the AI sidebar and ask a question"
-_row "\\at"                 "toggle the sidebar"
-_row "\\ae"                 "edit the selected code (visual mode) - returns a diff"
+_row "Space aa"             "open the AI sidebar and ask a question"
+_row "Space at"             "toggle the sidebar closed"
+_row "Space ae"             "edit the selected code (visual mode) - returns a diff"
 _row "co / ct / ca"        "in a diff: choose ours / theirs / all theirs"
-_row "\\a?"                 "pick a model for the current provider"
+_row "Space a?"             "pick a model for the current provider"
 _row ":AvanteSwitchProvider claude|openai|grok" "switch which one you're talking to"
 _row "ANTHROPIC/OPENAI/XAI_API_KEY" "set in zsh.config/.zshrc.local, not tracked (see .example)"
-_row "first install"       "builds in the background - \$XDG_CACHE_HOME/nvim/avante-nvim-build.log if \\aa errors right away"
+_row "first install"       "builds in the background - \$XDG_CACHE_HOME/nvim/avante-nvim-build.log if Space aa errors right away"
 
 echo

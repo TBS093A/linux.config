@@ -1,5 +1,13 @@
 " nvim plugins
 
+  " Space as leader, not the default backslash - reachable with either
+  " thumb instead of a pinky stretch, and it's what avante.nvim's own
+  " auto-generated <leader>a... bindings (aa/ae/at/af/a?/...) key off of
+  " too, so this alone moves that whole family off backslash with zero
+  " extra config. Must be set before anything that reads it, hence right
+  " at the top, before plug#begin() even.
+    let mapleader = " "
+
   " vim-plug bootstrap - stdpath('data') . '/site/autoload/plug.vim' is
   " where Neovim itself looks for autoload/plug#* functions (it does NOT
   " look in ~/.vim/autoload - that's classic Vim's path, and checking/
@@ -157,6 +165,14 @@ call plug#begin()
   " https://github.com/nvim-telescope/telescope.nvim
     Plug 'nvim-lua/plenary.nvim'
     Plug 'nvim-telescope/telescope.nvim', { 'tag': '0.1.1' }
+
+  " which-key.nvim - shows a live popup of what's available after any
+  " prefix key (leader, Ctrl-w, g, ...), pulling descriptions straight
+  " off vim.keymap.set's own `desc` field where one was given. The actual
+  " answer to "too many keybinds to remember" - see it instead of
+  " memorizing it. help-nvim.sh stays as the searchable/offline version.
+  " https://github.com/folke/which-key.nvim
+    Plug 'folke/which-key.nvim'
 
   " The goal of nvim-treesitter is both to provide a simple and easy way
   " to use the interface for tree-sitter in Neovim and to provide some
@@ -339,6 +355,21 @@ call plug#begin()
 
         au VimEnter * lua require("toggleterm").setup()
 
+      " which-key loading - group labels only; individual mappings show
+      " up on their own via vim.keymap.set's `desc`, or plain/without a
+      " description (still visible, just unlabeled) for the vimscript
+      " nnoremap/nmap ones and whatever avante/jedi-vim/gitgutter
+      " auto-generate under <leader>a/<leader>c/<leader>g themselves
+        au VimEnter * lua require("which-key").setup()
+        au VimEnter * lua require("which-key").add({
+          \ { "<leader>a", group = "AI (avante)" },
+          \ { "<leader>b", group = "Buffer" },
+          \ { "<leader>c", group = "Code (jedi-vim, tagbar)" },
+          \ { "<leader>f", group = "Find (Telescope)" },
+          \ { "<leader>g", group = "Git hunk (gitgutter)" },
+          \ { "<leader>m", group = "Multi-cursor extras (vim-visual-multi)" },
+          \ })
+
       " render-markdown loading (avante's chat sidebar renders as
       " filetype "Avante" - included here so it gets the same treatment
       " as real markdown, not just .md files)
@@ -423,16 +454,53 @@ EOF
           " set termguicolors to enable highlight groups
           au VimEnter * lua vim.opt.termguicolors = true
 
-    " jedi-vim configuration
+    " jedi-vim configuration - goto/rename/usages moved off bare \d/\g/
+    " \n/\r (easy to forget, and 1-key-away from real vim commands) onto
+    " <leader>c (code) - completions stays on Ctrl-Space, that one needs
+    " to be instant, not a 2-key mnemonic sequence
 
       let g:jedi#use_tabs_not_buffers = 1
       let g:jedi#use_splits_not_buffers = "left"
       let g:jedi#environment_path = "/usr/bin/python3"
+      let g:jedi#goto_command = "<leader>cd"
+      let g:jedi#goto_assignments_command = "<leader>ca"
+      let g:jedi#usages_command = "<leader>cu"
+      let g:jedi#rename_command = "<leader>cr"
 
     " Copilot configuration (disabled - Plug 'github/copilot.vim' above is
     " commented out too; re-enable both together if you want it back)
 
       " au VimEnter * Copilot setup
+
+    " tagbar - :TagbarToggle was command-only before, no keybind at all
+      nnoremap <silent> <leader>ct <Cmd>TagbarToggle<CR>
+
+    " gitgutter - its own defaults use <leader>h (hunk); remapped to
+    " <leader>g (git) to sit in the same mnemonic group as everything
+    " else here, instead of being its own one-off letter to remember
+      let g:gitgutter_map_keys = 0
+      nmap <leader>gs <Plug>(GitGutterStageHunk)
+      nmap <leader>gu <Plug>(GitGutterUndoHunk)
+      nmap <leader>gp <Plug>(GitGutterPreviewHunk)
+
+    " Telescope - :Telescope find_files / live_grep were command-only
+    " before, no keybind at all; ff/fg matches the convention basically
+    " every other Telescope-using config already uses
+      nnoremap <silent> <leader>ff <Cmd>Telescope find_files<CR>
+      nnoremap <silent> <leader>fg <Cmd>Telescope live_grep<CR>
+
+    " vim-visual-multi - its own defaults use a literal double backslash
+    " (\\A, \\/, \\\, \\gS) regardless of &mapleader, which doesn't even
+    " read as "the leader key twice" so much as its own unrelated thing
+    " to remember. Folded into the same <leader>m (multi-cursor) group
+    " as everything else instead. Its 2 highest-frequency entry points -
+    " Ctrl-n (select word) and Ctrl-Down/Up (column cursors) - already
+    " aren't part of this family and are left exactly as they are.
+      let g:VM_maps = {}
+      let g:VM_maps['Select All'] = '<leader>ma'
+      let g:VM_maps['Start Regex Search'] = '<leader>mf'
+      let g:VM_maps['Add Cursor At Pos'] = '<leader>ms'
+      let g:VM_maps['Reselect Last'] = '<leader>mr'
 
     " startup
 
@@ -578,8 +646,8 @@ EOF
         end
 EOF
 
-        " NvimTree shortcuts
-          map <C-b> :NvimTreeToggle<CR>
+        " NvimTree shortcuts - Ctrl-w F jumps to/opens it (see the pane
+        " navigation block below); no separate toggle key on top of that
 
           " files
 
@@ -659,10 +727,13 @@ EOF
     "                          :BufferCloseBuffersLeft
     "                          :BufferCloseBuffersRight
 
-    " Magic buffer-picking mode
+    " Magic buffer-picking mode - these were both bound to <C-p>, the
+    " second silently overriding the first, so BufferPick (pick one to
+    " jump to) never actually fired, only BufferPickDelete did. Split
+    " across two real keys instead.
 
-      nnoremap <silent> <C-p>    <Cmd>BufferPick<CR>
-      nnoremap <silent> <C-p>    <Cmd>BufferPickDelete<CR>
+      nnoremap <silent> <C-p>       <Cmd>BufferPick<CR>
+      nnoremap <silent> <leader>bx  <Cmd>BufferPickDelete<CR>
 
     " Sort automatically by...
 
@@ -675,10 +746,13 @@ EOF
     " :BarbarEnable - enables barbar (enabled by default)
     " :BarbarDisable - very bad command, should never be used
 
-  " ToggleTerm shortcuts
+  " ToggleTerm shortcuts - Alt-t toggles it everywhere (normal, insert,
+  " AND inside the terminal itself), instead of Alt-t to open but a
+  " different key (Ctrl-t) to close - same action deserves the same key
+  " regardless of which side of it you're on.
 
     autocmd TermEnter term://*toggleterm#*
-            \ tnoremap <silent><c-t> <Cmd>exe v:count1 . "ToggleTerm"<CR>
+            \ tnoremap <silent><A-t> <Cmd>exe v:count1 . "ToggleTerm"<CR>
 
     nnoremap <silent> <A-t> <Cmd>exe v:count1 . "ToggleTerm"<CR>
           inoremap <silent> <A-t> <Esc><Cmd>exe v:count1 . "ToggleTerm"<CR>
