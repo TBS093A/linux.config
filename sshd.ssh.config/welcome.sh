@@ -811,6 +811,11 @@ _welcome_banner() {
     printf '%sNew here? Run %s%shelp-cmd%s%s for a rundown of what you can run on this box.%s\n\n' \
         "$GRAY" "$RESET" "$BOLD" "$RESET" "$GRAY" "$RESET"
 
+    if command -v nvim >/dev/null 2>&1; then
+        printf '%sEditing here? Run %s%shelp-nvim%s%s for the Neovim-specific rundown.%s\n\n' \
+            "$GRAY" "$RESET" "$BOLD" "$RESET" "$GRAY" "$RESET"
+    fi
+
     local year; year=$(date +%Y)
     printf '%s%s%s\n' "$GRAY" "$(_hline "$term_width")" "$RESET"
     printf '%s%s© %s TBS093A%s %s· %s · linux.config dotfiles%s\n' "$BOLD" "$ACCENT" "$year" "$RESET" "$GRAY" "$hostname" "$RESET"

@@ -21,6 +21,7 @@ BASH_FILES=(
     install.sh
     make.symlinks.sh
     help-cmd.sh
+    help-nvim.sh
     lint-shell.sh
     sshd.ssh.config/welcome.sh
     tmux.config/tmux.session.sh

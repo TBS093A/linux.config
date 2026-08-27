@@ -33,14 +33,14 @@ repos:
         # are deliberate false positives here, e.g. welcome.sh's
         # single-quoted ASCII art)
         args: ["--shell=bash", "--severity=warning"]
-        files: ^(install\.sh|make\.symlinks\.sh|help-cmd\.sh|lint-shell\.sh|sshd\.ssh\.config/welcome\.sh|tmux\.config/tmux\.session\.sh|tmux\.config/status-sys\.sh|zsh\.config/install\.zsh\.plugins\.sh|zsh\.config/install\.zsh\.sh|bash\.config/\.bashrc|bash\.config/\.bash_profile|test/welcome-smoke\.sh)$
+        files: ^(install\.sh|make\.symlinks\.sh|help-cmd\.sh|help-nvim\.sh|lint-shell\.sh|sshd\.ssh\.config/welcome\.sh|tmux\.config/tmux\.session\.sh|tmux\.config/status-sys\.sh|zsh\.config/install\.zsh\.plugins\.sh|zsh\.config/install\.zsh\.sh|bash\.config/\.bashrc|bash\.config/\.bash_profile|test/welcome-smoke\.sh)$
 
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.13.1-1
     hooks:
       - id: shfmt
         args: ["-d"]
-        files: ^(install\.sh|make\.symlinks\.sh|help-cmd\.sh|lint-shell\.sh|sshd\.ssh\.config/welcome\.sh|tmux\.config/tmux\.session\.sh|tmux\.config/status-sys\.sh|zsh\.config/install\.zsh\.plugins\.sh|zsh\.config/install\.zsh\.sh|bash\.config/\.bashrc|bash\.config/\.bash_profile|test/welcome-smoke\.sh)$
+        files: ^(install\.sh|make\.symlinks\.sh|help-cmd\.sh|help-nvim\.sh|lint-shell\.sh|sshd\.ssh\.config/welcome\.sh|tmux\.config/tmux\.session\.sh|tmux\.config/status-sys\.sh|zsh\.config/install\.zsh\.plugins\.sh|zsh\.config/install\.zsh\.sh|bash\.config/\.bashrc|bash\.config/\.bash_profile|test/welcome-smoke\.sh)$
         stages: [manual]
 
   - repo: https://github.com/gitleaks/gitleaks

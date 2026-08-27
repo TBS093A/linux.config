@@ -201,6 +201,7 @@ fi
 
 alias tmux-session="$DOTFILES_DIR/tmux.config/tmux.session.sh"
 alias help-cmd="$DOTFILES_DIR/help-cmd.sh"
+alias help-nvim="$DOTFILES_DIR/help-nvim.sh"
 alias lint-shell="$DOTFILES_DIR/lint-shell.sh"
 
 alias add-tbs093a-git-id='eval "$(ssh-agent -s)"; ssh-add ~/.ssh/git_accesses'

@@ -21,6 +21,7 @@ jobs:
             install.sh \
             make.symlinks.sh \
             help-cmd.sh \
+            help-nvim.sh \
             lint-shell.sh \
             sshd.ssh.config/welcome.sh \
             tmux.config/tmux.session.sh \
@@ -39,7 +40,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y zsh
       - name: bash -n
         run: |
-          for f in install.sh make.symlinks.sh help-cmd.sh lint-shell.sh \
+          for f in install.sh make.symlinks.sh help-cmd.sh help-nvim.sh lint-shell.sh \
                    sshd.ssh.config/welcome.sh \
                    tmux.config/tmux.session.sh tmux.config/status-sys.sh \
                    zsh.config/install.zsh.plugins.sh \

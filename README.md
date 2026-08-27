@@ -34,6 +34,7 @@ get.package.manager.zsh  detects the box's package manager (apt/pacman/xbps/...)
 make.symlinks.sh         installs everything below (see Install)
 install.sh               bootstraps a bare box: packages + oh-my-zsh + symlinks
 help-cmd.sh              `help-cmd` - prints every command/keybind below (see CLI below)
+help-nvim.sh             `help-nvim` - the Neovim-specific half of the above, split out on its own
 lint-shell.sh            `lint-shell` - runs CI's shellcheck/syntax checks locally
 .pre-commit-config.yaml  same checks + gitleaks, wired to run on `git commit` (see CI below)
 ```
@@ -131,7 +132,10 @@ in the first place.
 ## Day-to-day extras
 
 `help-cmd` prints all of this from the shell itself (colored to match
-`welcome.sh`) - run it any time you forget what's here. `install.sh` pulls
+`welcome.sh`) - run it any time you forget what's here; `help-nvim`
+(pointed to from `help-cmd`'s own `nvim` line) is the Neovim-specific
+half, split into its own file once that section grew past a quick
+glance. `install.sh` pulls
 in `zoxide`, `direnv`, `eza`, `bat`, `delta`, `yazi`, `ripgrep`, `fd`, `jq`,
 `yq`, `lazygit`, `btop`, `k9s`, `nvtop`, `dust`, `duf`, and `procs` alongside
 the base packages (`--local` adds `shellcheck`/`shfmt` on top, for editing
@@ -192,7 +196,7 @@ useless - no separate `--gpu` flag or detection to maintain).
   reformatting every existing script to match would be its own large diff.
 - **avante.nvim (Cursor-style AI sidebar, neovim only)** - `\aa` asks a
   question, `\ae` edits the selected code and hands back a diff to
-  accept/reject (`help-cmd` has the full keybind list) - see
+  accept/reject (`help-nvim` has the full keybind list) - see
   `vim.config/init.vim` for the actual setup. Wired for Claude, OpenAI,
   and Grok (the last one as a custom OpenAI-compatible provider, since
   avante has no native one for it); keys go in `zsh.config/.zshrc.local`
@@ -331,7 +335,8 @@ what's already on the box (`awk`, `free`, `df`, `xbps-query`, `numfmt`,
 - Runit service health (root-only, since `/var/service/*/supervise`
   isn't world-readable).
 - A pointer to `help-cmd` (see Day-to-day extras above) right before the
-  footer, for anyone landing on the box for the first time.
+  footer, for anyone landing on the box for the first time - plus a
+  second one to `help-nvim` when `nvim` is actually installed.
 
 Everything sizes itself to `tput cols` - separators, the core/ports
 wrapping, and a fallback to a stacked (non-side-by-side) layout when the
