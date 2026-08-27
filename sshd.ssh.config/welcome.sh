@@ -496,8 +496,8 @@ _welcome_banner() {
     sessions_lines+=("${BOLD}${ACCENT}Sessions:${RESET} ${GRAY}${#sessions[@]}${RESET}")
     n=${#sessions[@]}
     for (( k=0; k<n; k++ )); do
-        local wuser="" wtty="" wdate="" wtime="" wfrom=""
-        read -r wuser wtty wdate wtime wfrom <<< "${sessions[$k]}"
+        local wuser="" wtty=""
+        read -r wuser wtty _ _ _ <<< "${sessions[$k]}"
         sessions_lines+=("${GRAY}$(_branch "$k" "$n") ${wuser}@${wtty}${RESET}")
     done
 

@@ -10,8 +10,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: shellcheck (bash scripts)
+        # --severity=warning: gate on real bugs (unquoted expansions,
+        # unused vars, ...), not shellcheck's info/style suggestions -
+        # several of those are false positives here on purpose (e.g.
+        # welcome.sh's ASCII art is single-quoted so its literal $/`
+        # characters don't expand, which SC2016 can't tell apart from a
+        # forgotten interpolation)
         run: |
-          shellcheck --shell=bash \
+          shellcheck --shell=bash --severity=warning \
             install.sh \
             make.symlinks.sh \
             help-cmd.sh \

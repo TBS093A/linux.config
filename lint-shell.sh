@@ -45,7 +45,9 @@ fail=0
 
 if command -v shellcheck >/dev/null 2>&1; then
     echo "==> shellcheck"
-    shellcheck --shell=bash "${BASH_FILES[@]}" || fail=1
+    # --severity=warning: see the comment in lint.yml - same reasoning,
+    # keep both in sync
+    shellcheck --shell=bash --severity=warning "${BASH_FILES[@]}" || fail=1
 else
     echo "!! shellcheck not installed - skipping (install.sh --local includes it)"
 fi
