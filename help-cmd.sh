@@ -154,6 +154,8 @@ if _have nvim; then
     _row "\\\\\\"               "add a single cursor at the current position"
     _row "\\\\gS"               "reselect regions from the last session"
     _row "Ctrl-LeftMouse"      "add a cursor where clicked"
+    _row "Ctrl-RightMouse"     "select the word where clicked"
+    _row "Alt-Ctrl-RightMouse" "create a column of cursors from here to where clicked"
     _row "Esc"                 "exit multi-cursor mode"
 
     _section "Neovim: clipboard, completion, formatting"
@@ -163,6 +165,25 @@ if _have nvim; then
     _row "on save (:w)"        "auto-formats + strips trailing whitespace (not Makefiles)"
     _row ":Telescope find_files" "fuzzy file finder - no keybind, run as a command"
     _row ":Telescope live_grep"  "fuzzy grep across the project"
+
+    _section "Neovim: code navigation (jedi-vim, tagbar - Python-aware)"
+    _row "\\d"                  "go to definition"
+    _row "\\g"                  "go to assignment"
+    _row "\\n"                  "show usages"
+    _row "\\r"                  "rename (all usages)"
+    _row "K"                    "show documentation for what's under the cursor"
+    _row ":TagbarToggle"        "ctags outline sidebar (classes/functions in the file) - no keybind"
+
+    _section "Neovim: git diff in the sign column (vim-gitgutter)"
+    _row "]c / [c"             "jump to the next / previous changed hunk"
+    _row "\\hs"                 "stage the hunk under the cursor"
+    _row "\\hu"                 "undo (revert) the hunk under the cursor"
+    _row "\\hp"                 "preview the hunk's diff in a popup"
+
+    _section "Neovim: alignment + snippets (vim-easy-align, UltiSnips)"
+    _row "ga<motion/selection>" "interactive align on a character, e.g. gaip= aligns = signs in the paragraph"
+    _row "Tab"                  "expand a snippet trigger, or jump to the next placeholder"
+    _row "Ctrl-j / Ctrl-k"      "jump to the next / previous snippet placeholder"
 
     _section "Neovim: AI (avante.nvim - Cursor-style ask/edit, opens on startup)"
     _row "\\aa"                 "open the AI sidebar and ask a question"
