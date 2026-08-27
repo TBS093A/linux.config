@@ -175,6 +175,22 @@ if _have lazygit; then
     _row "  ?"                  "lazygit's own keybind cheat sheet"
 fi
 
+_section "GitHub / Gitea (gh, gh-dash, tea)"
+if _have gh; then
+    _row "gh auth login"      "one-time per box - install.sh can't script an interactive OAuth flow"
+    _row "gh pr create/view/list" "open, view, or list pull requests without leaving the terminal"
+    _row "gh issue create/list" "same, for issues"
+    _row "gh dash"             "TUI dashboard (gh extension) - PRs/issues across repos, one screen"
+else
+    _row "gh"                  "not installed - install.sh includes it"
+fi
+if _have tea; then
+    _row "tea login add"      "one-time per Gitea instance (e.g. git.00x097.com) - needs a token"
+    _row "tea pulls / issues" "list pull requests / issues on the logged-in instance"
+else
+    _row "tea"                 "not installed - install.sh includes it"
+fi
+
 _section "Other"
 if _have direnv; then
     _row "direnv allow"       "opt this directory into its .envrc (once, per dir)"

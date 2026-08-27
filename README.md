@@ -137,12 +137,13 @@ in the first place.
 half, split into its own file once that section grew past a quick
 glance. `install.sh` pulls
 in `zoxide`, `direnv`, `eza`, `bat`, `delta`, `yazi`, `ripgrep`, `fd`, `jq`,
-`yq`, `lazygit`, `btop`, `k9s`, `nvtop`, `dust`, `duf`, and `procs` alongside
-the base packages (`--local` adds `shellcheck`/`shfmt` on top, for editing
-this repo itself), plus `mise` via its own official installer (see below);
-each piece below only activates if its tool is actually present
-(`command -v` guarded), so nothing breaks on a box where one of them failed
-to install - not every package manager carries all of these
+`yq`, `lazygit`, `btop`, `k9s`, `nvtop`, `dust`, `duf`, `procs`, and `gh`
+alongside the base packages (`--local` adds `shellcheck`/`shfmt` on top,
+for editing this repo itself), plus `mise` and `tea` via their own
+installers where they aren't reliably packaged (see below); each piece
+below only activates if its tool is actually present (`command -v`
+guarded), so nothing breaks on a box where one of them failed to install -
+not every package manager carries all of these
 (`lazygit`/`btop`/`k9s`/`dust`/`duf`/`procs` in particular aren't in every
 distro's default repos - RHEL/yum-based boxes are the most likely to be
 missing them), and `nvtop` is installed
@@ -166,6 +167,22 @@ useless - no separate `--gpu` flag or detection to maintain).
 - **lazygit** - `lg` opens a TUI for staging/unstaging, rebase, stash, and
   browsing commits - a faster day-to-day complement to the `git.config`
   aliases below, not a replacement for them.
+- **gh / gh-dash / tea** - the hosting-platform layer on top of lazygit's
+  local-git one: `gh` (GitHub CLI) for PRs/issues from the terminal, plus
+  `gh dash` (a `gh extension install dlvhdr/gh-dash`, done automatically
+  right after `gh` itself) for a TUI dashboard across repos; `tea` is the
+  same idea for Gitea (e.g. `git.00x097.com`). Neither auth step is
+  scripted - `gh auth login` and `tea login add` are both one-time,
+  interactive (OAuth or a manually-generated token), so they're on you
+  after install, same category as avante's API keys above. Package
+  naming needed care: Void and Arch both call the GitHub CLI package
+  `github-cli`, not `gh` (verified by hand, not assumed); Debian/Ubuntu's
+  own `tea` package is a decades-old, unrelated GTK text editor, so `tea`
+  only comes from `pkg_install` on Void/Arch (confirmed correct there) -
+  everywhere else it's the official prebuilt binary from
+  `dl.gitea.com/tea`, resolved to whatever's actually latest rather than
+  a hardcoded version, same reasoning as everything else in this repo
+  that doesn't hardcode a version that'll go stale.
 - **btop** - `btop` for an interactive CPU/RAM/process view; the always-on
   numbers in the login banner and tmux statusbar cover the at-a-glance case.
 - **dust / duf / procs** - modern replacements for `du`/`df`/`ps`: `dust`

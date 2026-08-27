@@ -150,13 +150,37 @@ cargo_pkg() {
     esac
 }
 
+# Void and Arch both name it "github-cli" ("gh" is either unrelated or
+# doesn't exist as a package name there - verified by hand, not assumed);
+# the actual binary this installs is still called `gh` either way.
+gh_pkg() {
+    case "$PKG_MGR" in
+        pacman|xbps-install) echo "github-cli" ;;
+        *)                   echo "gh" ;;
+    esac
+}
+
 if [[ $PKG_MGR == apt-get ]]; then
     log "Refreshing apt package lists"
     _sudo apt-get update -qq || warn "apt-get update failed - continuing with whatever's cached"
 fi
 
 BASE_PKGS=(git zsh tmux curl openconnect wireguard-tools fzf zoxide direnv eza bat \
-    "$(delta_pkg)" yazi ripgrep "$(fd_pkg)" jq yq lazygit btop k9s nvtop dust duf procs)
+    "$(delta_pkg)" yazi ripgrep "$(fd_pkg)" jq yq lazygit btop k9s nvtop dust duf procs "$(gh_pkg)")
+
+# tea (Gitea CLI) is correctly packaged as "tea" on Void and Arch only -
+# verified by hand before adding this: Debian/Ubuntu's own "tea" package is
+# a completely unrelated, decades-old GTK text editor (its changelog is on
+# version ~63, nothing to do with Gitea), and RHEL/yum doesn't carry it
+# under any name. Blindly pkg_install-ing "tea" everywhere would silently
+# succeed on apt by installing the wrong program entirely, worse than the
+# usual "missing package, warn and skip" case this script tolerates
+# elsewhere - so it only goes in BASE_PKGS for the two managers confirmed
+# correct; everyone else gets it further down, the same "not reliably
+# packaged" treatment mise gets.
+if [[ $PKG_MGR == xbps-install || $PKG_MGR == pacman ]]; then
+    BASE_PKGS+=(tea)
+fi
 
 # neovim: --local profile default, --server skips it - --neovim/--no-neovim
 # overrides either way, so this decision doesn't need a --local/--server
@@ -184,6 +208,44 @@ if ! command -v mise >/dev/null 2>&1 && [[ ! -x "$HOME/.local/bin/mise" ]]; then
     curl -fsSL https://mise.run | sh || warn "mise install failed - see https://mise.jdx.dev/getting-started.html"
 else
     log "mise already installed, skipping"
+fi
+
+# tea (Gitea CLI) on everything except Void/Arch (see the BASE_PKGS comment
+# above for why those two get it via pkg_install instead) - same "official
+# installer, user-local, no sudo" shape as mise, since there's no package to
+# install from here either. Picks the latest release from dl.gitea.com's own
+# version endpoint rather than a hardcoded version, same reasoning as every
+# other "ask the source of truth, don't hardcode a version that'll go stale"
+# choice in this script.
+if [[ $PKG_MGR != xbps-install && $PKG_MGR != pacman ]]; then
+    if ! command -v tea >/dev/null 2>&1; then
+        log "Installing tea"
+        tea_version=$(curl -fsSL https://dl.gitea.com/tea/version.json 2>/dev/null | jq -r '.latest.version // empty')
+        if [[ -n $tea_version ]]; then
+            mkdir -p "$HOME/.local/bin"
+            curl -fsSL "https://dl.gitea.com/tea/${tea_version}/tea-${tea_version}-linux-amd64" -o "$HOME/.local/bin/tea" \
+                && chmod +x "$HOME/.local/bin/tea" \
+                || warn "tea download failed - see https://gitea.com/gitea/tea"
+        else
+            warn "couldn't determine latest tea version - see https://gitea.com/gitea/tea"
+        fi
+    else
+        log "tea already installed, skipping"
+    fi
+fi
+
+# gh-dash (browse/manage PRs+issues from a TUI) is a `gh` extension, not a
+# package - installing it is just a public git clone under the hood, so it
+# doesn't need `gh auth login` done first, only actually using it to list
+# PRs/issues does (a one-time manual step, same as tea's own login below -
+# neither has a sane way to script an interactive OAuth/token flow here).
+if command -v gh >/dev/null 2>&1; then
+    if ! gh extension list 2>/dev/null | grep -q dlvhdr/gh-dash; then
+        log "Installing gh-dash (gh extension)"
+        gh extension install dlvhdr/gh-dash || warn "gh-dash install failed - run 'gh extension install dlvhdr/gh-dash' yourself later"
+    else
+        log "gh-dash already installed, skipping"
+    fi
 fi
 
 # Nerd Font symbols (icons eza/fzf/etc. can render) - Void-only: it's the
