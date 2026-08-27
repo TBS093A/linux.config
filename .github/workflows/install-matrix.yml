@@ -60,11 +60,20 @@ jobs:
               pacman -S --noconfirm git
               ;;
             voidlinux)
-              # this image's own xbps binary/repodata seed is old - self
-              # update xbps before anything else, same as any real Void
-              # bootstrap would
+              # this image is a stale (2021) seed - both its xbps binary
+              # and its baked-in mirror need refreshing before anything
+              # else. The mirror part specifically: its default points at
+              # a rotated `alpha.de.repo.voidlinux.org` whose TLS cert no
+              # longer matches that hostname ("SSL certificate subject
+              # doesn't match host"), which fails closed, not just slow -
+              # repoint it at the current official default mirror first
+              echo 'repository=https://repo-default.voidlinux.org/current' \
+                > /etc/xbps.d/00-repository-main.conf
               xbps-install -Suy xbps
-              xbps-install -Sy git
+              # bash too: this image is base-minimal, which doesn't
+              # include it - install.sh's own #!/usr/bin/env bash shebang
+              # needs it present, unlike a real Void install (base-system)
+              xbps-install -Sy git bash
               ;;
           esac
 
